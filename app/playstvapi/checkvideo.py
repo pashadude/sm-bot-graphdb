@@ -8,13 +8,8 @@ class VideoFetcher():
         self.id = videoid
     def fetch_video(self):
         ydl_opts = {
-            'format': 'bestaudio/best',
+            'format': 'best',
             'preferredcodec': 'mp3',
-            'preferredquality': '192',
-            'noplaylist': True,
-            #'playlist_items': '0',
-            #'writeinfojson': True,
-            #'skip_download': True,
             #'dump_single_json': True,
             'outtmpl': '../../Data/videos/{0}/{1}/%(ext)s'.format(self.game, self.id),
         }
@@ -22,5 +17,5 @@ class VideoFetcher():
             ydl.download([self.uri])
         return
 
-a = VideoFetcher('http://plays.tv/explore/videos?game_id=b179585c6b68a2791eea4a1ad3d7ef72', 'League of Legends', '57c068730a92ec4ea7')
+a = VideoFetcher('http://plays.tv/video/586c23846d83444cba', 'League of Legends', '586c23846d83444cba')
 a.fetch_video()
