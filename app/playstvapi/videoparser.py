@@ -3,15 +3,23 @@ import youtube_dl
 import requests
 import json
 import pickle
+import os
+import datetime
 import numpy as np
 
 class VideoStatsFilter():
-    def __init__(self, game, hashtags, startdate, resolution, request_type):
+    def __init__(self, game, videos_top_share_to_look, hashtags, startdate, resolution, request_type):
         self.hashtags = hashtags
         self.game = game
         self.type = request_type
+        self.top = videos_top_share_to_look
+        self.request_type = request_type
         gamedata = pickle.load(open('../../Data/games.pkl', 'wb+'))
         self.gameid = gamedata[game]['id']
+        self.appid = 'DLKWBYCZNnBpDL4WOIRkCLFtDI7tO2RsOIGZ'
+        self.appkey = '9exhOxYiMA4l0TH_utz5LAHH4Ii2ANbX'
+        self.resolution = resolution
+        self.start = startdate
 
     def jaccard_similarity(self, x, y):
         intersection_cardinality = len(set.intersection(*[set(x), set(y)]))
@@ -41,13 +49,29 @@ class VideoStatsFilter():
         parts = metatag["metatag"].split(":")
         return parts[-1]
 
-    def select_suiting_video(self):
-        stats = VideoStatsFetcher(self.game, self.request_type).get_vid_stats()
-        #need to add similarity check and Json parsing
+    def rate_videos(self):
+        stats = VideoStatsFetcher(self.game, self.top, self.appid, self.appkey).get_vid_stats()
+        videos = self.parse_videos_data(stats)
+        for i in videos:
+            if self.request_type == 'trend':
+                i['jaccard'] = self.jaccard_similarity(self.hashtags, i['hashtags'])
+            #elif self.request_type == 'audience':
         return
 
+    def parse_videos_data(self, stats):
+        videos = []
+        video = {}
+        for i in stats['items']:
+            #resolutions = i['resolutions'].split(",")
+            if not(os.path.exists('../../Data/videos/{0}/{1}/%(title)s'.format(self.game, i['id']))) and (self.resolution in i['resolutions']):
+                video['id'] = i['id']
+                video['time'] = datetime.datetime.fromtimestamp(int(i['upload_time'])).strftime('%Y-%m-%d %H:%M:%S')
+                video['hashtags'] = self.turn_metatags_to_hashtags(i['metatags'])
+                videos.append(video)
+        return videos
 
-class VideoStatsFetcher():
+
+class VideoStatsFetcher:
     def __init__(self, game, top, appid, appkey):
         gamedata = pickle.load(open('../../Data/games.pkl', 'wb+'))
         self.gameid = gamedata[game]['id']
@@ -64,7 +88,7 @@ class VideoStatsFetcher():
         return json.loads(r.text)
 
 
-class VideoFetcher():
+class VideoFetcher:
     def __init__(self, uri, game, videoid):
         self.uri = uri
         self.game = game
