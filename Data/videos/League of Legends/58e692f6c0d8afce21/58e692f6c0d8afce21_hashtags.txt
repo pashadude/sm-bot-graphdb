@@ -1,1 +1,0 @@
-[b'szay-euw', b'tidusbot-euw', b'fullstone-euw', b'r\xc4\x99edy-euw', b'pbjdust-euw', b'niskasorfeed-euw', b'darkalpha1-euw', b'killstreak', b'endedenemykillstreak', b'pentakill', b'teamacekill', b'custom', b'summonersrift', b'kalista', b'thresh', b'orianna', b'gragas', b'ezreal', b'karma', b'camille', b'kalista']
