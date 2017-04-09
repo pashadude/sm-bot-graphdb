@@ -44,7 +44,6 @@ class GamesParser:
                     game_info[name] = {'id': id, 'videos': videos}
         if exists:
             pickle.dump(game_info, open('../../Data/games.pkl', 'wb+'))
-        print(game_info)
         return
 
 

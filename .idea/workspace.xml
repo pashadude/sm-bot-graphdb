@@ -2,7 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ac8c1c8a-e19f-44bc-8d70-c6258e1b4b48" name="Default" comment="">
+      <change type="DELETED" beforePath="$PROJECT_DIR$/Data/videos/League of Legends/57c068730a92ec4ea7/mp4" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/Data/videos/League of Legends/586c23846d83444cba/mp4" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/Data/videos/League of Legends/58cb139ae56da492e7/mp4" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Data/games.pkl" afterPath="$PROJECT_DIR$/Data/games.pkl" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/app/playstvapi/gamesparser.py" afterPath="$PROJECT_DIR$/app/playstvapi/gamesparser.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/app/playstvapi/videoparser.py" afterPath="$PROJECT_DIR$/app/playstvapi/videoparser.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -21,8 +26,8 @@
       <file leaf-file-name="gamesparser.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/playstvapi/gamesparser.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="240">
-              <caret line="15" column="56" lean-forward="true" selection-start-line="14" selection-start-column="7" selection-end-line="15" selection-end-column="56" />
+            <state relative-caret-position="736">
+              <caret line="46" column="14" lean-forward="false" selection-start-line="45" selection-start-column="12" selection-end-line="45" selection-end-column="71" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
               </folding>
@@ -33,8 +38,8 @@
       <file leaf-file-name="videoparser.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app/playstvapi/videoparser.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-623">
-              <caret line="14" column="43" lean-forward="false" selection-start-line="14" selection-start-column="43" selection-end-line="14" selection-end-column="43" />
+            <state relative-caret-position="497">
+              <caret line="111" column="25" lean-forward="false" selection-start-line="111" selection-start-column="25" selection-end-line="111" selection-end-column="25" />
               <folding>
                 <element signature="e#0#39#0" expanded="true" />
               </folding>
@@ -45,8 +50,8 @@
       <file leaf-file-name="checkvideo.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/playstvapi/checkvideo.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="320">
-              <caret line="20" column="15" lean-forward="true" selection-start-line="20" selection-start-column="15" selection-end-line="20" selection-end-column="15" />
+            <state relative-caret-position="144">
+              <caret line="9" column="20" lean-forward="false" selection-start-line="9" selection-start-column="20" selection-end-line="9" selection-end-column="20" />
               <folding>
                 <element signature="e#0#39#0" expanded="true" />
               </folding>
@@ -74,8 +79,8 @@
         <option value="$PROJECT_DIR$/app/playstvapi/videosstatsparser.py" />
         <option value="$PROJECT_DIR$/app/playstvapi/videodownloader.py" />
         <option value="$USER_HOME$/Python/homework-master/hw1/results_graph_builder.py" />
-        <option value="$PROJECT_DIR$/app/playstvapi/gamesparser.py" />
         <option value="$PROJECT_DIR$/app/playstvapi/checkvideo.py" />
+        <option value="$PROJECT_DIR$/app/playstvapi/gamesparser.py" />
         <option value="$PROJECT_DIR$/app/playstvapi/videoparser.py" />
       </list>
     </option>
@@ -100,6 +105,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -183,7 +189,6 @@
         </subPane>
       </pane>
       <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -369,7 +374,15 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager />
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/app/playstvapi/checkvideo.py</url>
+          <line>19</line>
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="1" />
+    </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
@@ -789,8 +802,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app/playstvapi/checkvideo.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="320">
-          <caret line="20" column="15" lean-forward="true" selection-start-line="20" selection-start-column="15" selection-end-line="20" selection-end-column="15" />
+        <state relative-caret-position="144">
+          <caret line="9" column="20" lean-forward="false" selection-start-line="9" selection-start-column="20" selection-end-line="9" selection-end-column="20" />
           <folding>
             <element signature="e#0#39#0" expanded="true" />
           </folding>
@@ -799,8 +812,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app/playstvapi/gamesparser.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="15" column="56" lean-forward="true" selection-start-line="14" selection-start-column="7" selection-end-line="15" selection-end-column="56" />
+        <state relative-caret-position="736">
+          <caret line="46" column="14" lean-forward="false" selection-start-line="45" selection-start-column="12" selection-end-line="45" selection-end-column="71" />
           <folding>
             <element signature="e#0#15#0" expanded="true" />
           </folding>
@@ -809,8 +822,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app/playstvapi/videoparser.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-623">
-          <caret line="14" column="43" lean-forward="false" selection-start-line="14" selection-start-column="43" selection-end-line="14" selection-end-column="43" />
+        <state relative-caret-position="497">
+          <caret line="111" column="25" lean-forward="false" selection-start-line="111" selection-start-column="25" selection-end-line="111" selection-end-column="25" />
           <folding>
             <element signature="e#0#39#0" expanded="true" />
           </folding>
