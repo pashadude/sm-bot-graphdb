@@ -1,0 +1,1 @@
+['pmmolotov-euw', 'nobilekaname-euw', 'ellynâ-euw', 'idariix-euw', 'tsiori-euw', 'kuràpika-euw', 'killstreak', 'pentakill', 'teamacekill', 'inhibitordestroyed', 'classic', 'normal', 'blindpick', 'summonersrift', 'darius', 'shyvana', 'annie', 'ezreal', 'singed', 'lux', 'darius']

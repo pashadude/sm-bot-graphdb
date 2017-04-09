@@ -1,0 +1,1 @@
+[b'#rapd-na', b'#richerich-na', b'#luiscr-na', b'#apsona-na', b'#backtoparadse-na', b'#edoke-na', b'#malkuu-na', b'#kill', b'#killstreak', b'#assist', b'#inhibitordestroyed', b'#classic', b'#rankedsolo', b'#teambuilder', b'#summonersrift', b'#cassiopeia', b'#jayce', b'#gragas', b'#sona', b'#orianna', b'#ezreal', b'#gangplank', b'#diamond', b'#cassiopeia']

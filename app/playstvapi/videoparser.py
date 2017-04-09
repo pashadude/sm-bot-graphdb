@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-#from YaDiskClient.YaDiskClient import YaDisk
+from YaDiskClient.YaDiskClient import YaDisk
 from operator import itemgetter
 import youtube_dl
 import requests
@@ -121,16 +121,18 @@ class VideoFetcher:
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([self.uri])
         myFilePath = os.path.join('../../Data/videos/{0}/{1}/'.format(self.game, self.id), '{0}_hashtags.txt'.format(self.id))
-        with open(myFilePath, 'wb+') as myFile:
-            for hashtag in self.hashtags:
-                myFile.write("{}\n".format(hashtag.encode('utf-8')))
-        #disk = YaDisk(self.Ylogin, self.Ypassword)
-        #disk.mkdir('Videos/{}/{}'.format(self.game, self.id))
-        #disk.upload('../../Data/videos/{0}/{1}/{1}.mp4'.format(self.game, self.id), 'Videos/{0}/{1}/{1}.mp4'.format(self.game, self.id))
-        #disk.upload('../../Data/videos/{0}/{1}/{1}_hashtags.txt'.format(self.game, self.id), 'Videos/{0}/{1}/{1}_hashtags.txt'.format(self.game, self.id))
+        utf_hashtags = []
+        for i in self.hashtags:
+            i = '#{0}'.format(i)
+            utf_hashtags.append(i.encode('utf-8'))
+        np.savetxt(myFilePath, ["%s" % utf_hashtags], fmt='%s')
+        disk = YaDisk(self.Ylogin, self.Ypassword)
+        disk.mkdir('Videos/{0}/{1}'.format(self.game, self.id))
+        disk.upload('../../Data/videos/{0}/{1}/{1}.mp4'.format(self.game, self.id), 'Videos/{0}/{1}/{1}.mp4'.format(self.game, self.id))
+        disk.upload('../../Data/videos/{0}/{1}/{1}_hashtags.txt'.format(self.game, self.id), 'Videos/{0}/{1}/{1}_hashtags.txt'.format(self.game, self.id))
         return
 
-a = VideoStatsFilter('League of Legends', 1000, ['ranked', 'pentakill', 'ezreal'], '2015-01-07 00:00:00', '720', 'trend')
+a = VideoStatsFilter('League of Legends', 10000, ['ranked', 'sona', 'pentakill', 'ezreal'], '2015-01-07 00:00:00', '720', 'trend')
 a.parse_videos_data()
 a.rate_videos()
 a.select_video()
