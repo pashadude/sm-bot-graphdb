@@ -41,6 +41,7 @@ class VideoStatsFilter():
 
     def turn_metatags_to_hashtags(self, metatags):
         dic = pickle.load(open('../../Data/{}/metatags_hashtags.pkl'.format(self.game), 'rb+'))
+        #dic = {'':''}
         hashtags = []
         for i in metatags:
             hashtag = self.parse_metatag(i)
@@ -65,6 +66,8 @@ class VideoStatsFilter():
     def select_video(self):
         self.videos = sorted(self.videos, key=itemgetter('jaccard'), reverse=True)
         #print(self.videos)
+        if self.videos[0]['jaccard'] == 0.0:
+            self.videos[0]['hashtags'] = [self.game, 'kill']
         VideoFetcher('http://plays.tv/video/{0}'.format(self.videos[0]['id']), self.game, self.videos[0]['id'], self.videos[0]['hashtags']).fetch_video()
         return
 
@@ -79,6 +82,7 @@ class VideoStatsFilter():
                 video['time'] = datetime.datetime.fromtimestamp(int(i['upload_time'])).strftime('%Y-%m-%d %H:%M:%S')
                 if 'metatags' in i:
                     video['hashtags'] = self.turn_metatags_to_hashtags(i['metatags'])
+                    #print(video['hashtags'])
                 self.videos.append(video)
         return
 
@@ -110,29 +114,34 @@ class VideoFetcher:
         self.uri = uri
         self.game = game
         self.id = videoid
+        self.timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.hashtags = hashtags
 
     def fetch_video(self):
         ydl_opts = {
             'format': 'best',
             'preferredcodec': 'mp3',
-            'outtmpl': '../../Data/videos/{0}/{1}/{1}.mp4'.format(self.game, self.id),
+            'outtmpl': '../../Data/videos/{0}/{1}/video.mp4'.format(self.game, self.id),
         }
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([self.uri])
-        myFilePath = os.path.join('../../Data/videos/{0}/{1}/'.format(self.game, self.id), '{0}_hashtags.txt'.format(self.id))
+        myFilePath = os.path.join('../../Data/videos/{0}/{1}/'.format(self.game, self.id), 'hashtags.txt')
         utf_hashtags = []
         for i in self.hashtags:
             i = '#{0}'.format(i)
             utf_hashtags.append(i.encode('utf-8'))
         np.savetxt(myFilePath, ["%s" % utf_hashtags], fmt='%s')
         disk = YaDisk(self.Ylogin, self.Ypassword)
-        disk.mkdir('Videos/{0}/{1}'.format(self.game, self.id))
-        disk.upload('../../Data/videos/{0}/{1}/{1}.mp4'.format(self.game, self.id), 'Videos/{0}/{1}/{1}.mp4'.format(self.game, self.id))
-        disk.upload('../../Data/videos/{0}/{1}/{1}_hashtags.txt'.format(self.game, self.id), 'Videos/{0}/{1}/{1}_hashtags.txt'.format(self.game, self.id))
+        disk.mkdir('Videos/{0}/{1}'.format(self.game, self.timestamp))
+        disk.upload('../../Data/videos/{0}/{1}/video.mp4'.format(self.game, self.id), 'Videos/{0}/{1}/video.mp4'.format(self.game, self.timestamp))
+        disk.upload('../../Data/videos/{0}/{1}/hashtags.txt'.format(self.game, self.id), 'Videos/{0}/{1}/hashtags.txt'.format(self.game, self.timestamp))
         return
 
-a = VideoStatsFilter('League of Legends', 10000, ['ranked', 'sona', 'pentakill', 'ezreal'], '2015-01-07 00:00:00', '720', 'trend')
+a = VideoStatsFilter('League of Legends', 10000, ['karthus', 'classic'], '2015-01-07 00:00:00', '720', 'trend')
+#'For Honor', 10000, ['knight', 'duel', 'flawless', 'kill']
+#'Overwatch', 10000, ['soldier76', 'ace', 'kill']
+#'DOTA 2', 7000, ['drow ranger', 'phantomassassin', 'triplekill']
+#'Battlefield 1', 10000, ['kill', 'germany']
 a.parse_videos_data()
 a.rate_videos()
 a.select_video()
