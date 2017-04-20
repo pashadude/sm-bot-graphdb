@@ -4,7 +4,7 @@ import pickle
 
 
 def main():
-    bar = ['League of Legends', 'DOTA 2', 'Overwatch', 'For Honor', 'Battlefield 1']
+    bar = ['League of Legends', 'DOTA 2', 'Overwatch', 'For Honor', 'Battlefield 1', 'FIFA 17', 'Rocket League']
     foo = GamesParser(bar)
     foo.gamelist()
 
@@ -43,6 +43,7 @@ class GamesParser:
                 elif game_info[name]['videos'] < videos:
                     game_info[name] = {'id': id, 'videos': videos}
         if exists:
+            print(game_info)
             pickle.dump(game_info, open('../../Data/games.pkl', 'wb+'))
         return
 
