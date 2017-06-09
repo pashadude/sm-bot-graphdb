@@ -9,7 +9,10 @@ import os
 import datetime
 import numpy as np
 import math
-import collections
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+
 
 
 class VideoStatsFilter():
@@ -18,7 +21,7 @@ class VideoStatsFilter():
     appkey = '9exhOxYiMA4l0TH_utz5LAHH4Ii2ANbX'
     videos = []
 
-    def __init__(self, game, videos_top_share_to_look, hashtags, postdate, startdate, resolution, request_type):
+    def __init__(self, game, videos_top_share_to_look, hashtags, startdate, resolution, request_type):
         self.hashtags = hashtags
         self.game = game
         self.type = request_type
@@ -29,7 +32,7 @@ class VideoStatsFilter():
         self.gameid = gamedata[game]['id']
         self.resolution = resolution
         self.start = startdate
-        self.post = postdate
+
 
     def jaccard_similarity(self, x, y):
         intersection_cardinality = len(set.intersection(*[set(x), set(y)]))
@@ -108,23 +111,13 @@ class VideoStatsFilter():
         else:
             id = 0
         VideoFetcher('http://plays.tv/video/{0}'.format(self.videos[id]['id']), self.game, self.videos[id]['id'], self.videos[id]['hashtags']).fetch_video()
-        vids = pickle.load(open('../../Data/videos_parsed.pkl'.format(self.game), 'rb+'))
-        vids.append(self.videos[id])
-        pickle.dump(vids, open('../../Data/videos_parsed.pkl'.format(self.game), 'wb+'))
         return
 
     def parse_videos_data(self):
         stats = VideoStatsFetcher(self.game, self.top, self.appid, self.appkey)
         stats = stats.get_vid_stats()
-        if not (os.path.exists('../../Data/videos/{0}/{1}')):
-            vids = []
-        else:
-            vids =  pickle.load(open('../../Data/videos_parsed.pkl'.format(self.game), 'rb+'))
-
         for i in stats['content']['items']:
-            #resolutions = i['resolutions'].split(",")
-
-            if not(i[id] in vids.keys) and (self.resolution in i['resolutions']):
+            if not(os.path.exists('../../Data/videos/{0}/{1}'.format(self.game, i['id']))) and (self.resolution in i['resolutions']):
                 video = {}
                 video['id'] = i['id']
                 video['time'] = datetime.datetime.fromtimestamp(int(i['upload_time'])).strftime('%Y-%m-%d %H:%M:%S')
@@ -174,24 +167,49 @@ class VideoFetcher:
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([self.uri])
         myFilePath = os.path.join('../../Data/videos/{0}/{1}/'.format(self.game, self.id), 'hashtags.txt')
+        linkFilePath = os.path.join('../../Data/videos/{0}/{1}/'.format(self.game, self.id), 'link_to_original.txt')
         utf_hashtags = []
         for i in self.hashtags:
             i = '#{0}'.format(i)
             utf_hashtags.append(i.encode('utf-8'))
         np.savetxt(myFilePath, ["%s" % utf_hashtags], fmt='%s')
+        with open(linkFilePath, "w") as text_file:
+            text_file.write(self.uri)
         disk = YaDisk(self.Ylogin, self.Ypassword)
         disk.mkdir('Videos/{0}/{1}'.format(self.game, self.timestamp))
         disk.upload('../../Data/videos/{0}/{1}/video.mp4'.format(self.game, self.id), 'Videos/{0}/{1}/video.mp4'.format(self.game, self.timestamp))
         disk.upload('../../Data/videos/{0}/{1}/hashtags.txt'.format(self.game, self.id), 'Videos/{0}/{1}/hashtags.txt'.format(self.game, self.timestamp))
+        disk.upload('../../Data/videos/{0}/{1}/link_to_original.txt'.format(self.game, self.id), 'Videos/{0}/{1}/link_to_original.txt'.format(self.game, self.timestamp))
         return
 
-a = VideoStatsFilter('League of Legends', 25000, ['lux','zed','soraka','graves','pentakill'], '2015-01-07 00:00:00', '720', 'trend')
-#'For Honor', 10000, ['knight', 'duel', 'flawless', 'kill']
-#'Overwatch', 10000, ['soldier76', 'ace', 'kill']
-#'DOTA 2', 7000, ['drow ranger', 'phantomassassin', 'karthus', 'bristleback']
-#'Battlefield 1', 10000, ['kill', 'germany']
-#'FIFA 17', 5000, ['goal', 'barcelona']
 
-a.parse_videos_data()
-a.rate_videos()
-a.select_video()
+
+
+scope = ['https://spreadsheets.google.com/feeds']
+credentials = ServiceAccountCredentials.from_json_keyfile_name('API Project-429c8ddbdd22.json', scope)
+gc = gspread.authorize(credentials)
+sht = gc.open('vids_data').sheet1
+games = sht.col_values(2)
+hashtags = sht.col_values(3)
+indicator = sht.col_values(7)
+for i in range(1, len(games)):
+    if(indicator[i] == ''):
+        break
+    elif(indicator[i] == 'no'):
+        if(hashtags[i] != 'FALSE'):
+            hash_list = hashtags[i].split()
+        else:
+            hash_list = ['']
+        game = games[i]
+        a = VideoStatsFilter(game, 25000, hash_list,
+                         '2015-01-07 00:00:00', '720', 'trend')
+        a.parse_videos_data()
+        a.rate_videos()
+        a.select_video()
+        sht.update_cell(i+1, 7, 'yes')
+
+
+
+
+
+
