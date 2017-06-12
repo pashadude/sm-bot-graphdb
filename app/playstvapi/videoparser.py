@@ -19,7 +19,6 @@ class VideoStatsFilter():
 
     appid = 'DLKWBYCZNnBpDL4WOIRkCLFtDI7tO2RsOIGZ'
     appkey = '9exhOxYiMA4l0TH_utz5LAHH4Ii2ANbX'
-    videos = []
 
     def __init__(self, game, videos_top_share_to_look, hashtags, startdate, resolution, request_type):
         self.hashtags = hashtags
@@ -32,6 +31,7 @@ class VideoStatsFilter():
         self.gameid = gamedata[game]['id']
         self.resolution = resolution
         self.start = startdate
+        self.videos = []
 
 
     def jaccard_similarity(self, x, y):
@@ -98,6 +98,19 @@ class VideoStatsFilter():
            self.tf_idf_cosine()
         return
 
+    def check_hashtags_for_game(self, hashtags):
+        game_exists = False
+        if((self.game == 'League of Legends' and 'leagueoflegends' in hashtags)or
+               (self.game == 'Overwatch' and ('overwatch' in hashtags)) or
+               (self.game == 'Rocket League' and ('rocketleague' in hashtags)) or
+               (self.game == 'Battlefield 1' and ('battlefield1' in hashtags)) or
+               (self.game == 'FIFA 17' and ('fifa17' in hashtags)) or
+               (self.game == 'DOTA 2' and ('dota2' in hashtags)) or
+               (self.game == 'For Honor' and ('forhonor' in hashtags)) or
+               (self.game == 'CS:GO' and ('csgo' in hashtags))):
+            game_exists = True
+        return game_exists
+
 
     def select_video(self):
         if self.request_type == 'trend':
@@ -107,25 +120,40 @@ class VideoStatsFilter():
         self.videos = sorted(self.videos, key=itemgetter(param), reverse=True)
         if self.videos[0][param] == 0.0:
             id = np.random.random_integers(int(len(self.videos)))
-            self.videos[id]['hashtags'] = [self.game, 'videogames']
         else:
             id = 0
+        self.videos[id]['hashtags'].append('playstv')
+        self.videos[id]['hashtags'].append(self.videos[id]['author'])
+        #print(self.game, self.videos[id]['hashtags'])
+        #print('http://plays.tv/video/{0}'.format(self.videos[id]['id']))
+        #print(len(self.videos))
+        #print(self.videos[0])
+
         VideoFetcher('http://plays.tv/video/{0}'.format(self.videos[id]['id']), self.game, self.videos[id]['id'], self.videos[id]['hashtags']).fetch_video()
         return
 
     def parse_videos_data(self):
         stats = VideoStatsFetcher(self.game, self.top, self.appid, self.appkey)
         stats = stats.get_vid_stats()
-        for i in stats['content']['items']:
-            if not(os.path.exists('../../Data/videos/{0}/{1}'.format(self.game, i['id']))) and (self.resolution in i['resolutions']):
-                video = {}
-                video['id'] = i['id']
-                video['time'] = datetime.datetime.fromtimestamp(int(i['upload_time'])).strftime('%Y-%m-%d %H:%M:%S')
-                if 'metatags' in i:
-                    video['hashtags'] = self.turn_metatags_to_hashtags(i['metatags'])
-                    #print(video['hashtags'])
-                self.videos.append(video)
+        if not(isinstance(stats, str)):
+            for i in stats['content']['items']:
+                if not(os.path.exists('../../Data/videos/{0}/{1}'.format(self.game, i['id']))) and (self.resolution in i['resolutions']):
+                    video = {}
+                    video['id'] = i['id']
+                    video['author'] = i['author']['id']
+                    video['time'] = datetime.datetime.fromtimestamp(int(i['upload_time'])).strftime('%Y-%m-%d %H:%M:%S')
+                    video['hashtags'] = []
+                    if 'metatags' in i:
+                        video['hashtags'] = self.turn_metatags_to_hashtags(i['metatags'])
+                    if 'hashtags' in i:
+                        for hash in i['hashtags']:
+                            video['hashtags'].append(hash['tag'])
+                    if(video['hashtags']!=[] and self.check_hashtags_for_game(video['hashtags'])==True):
+                        self.videos.append(video)
         return
+
+
+
 
 
 class VideoStatsFetcher:
@@ -142,9 +170,12 @@ class VideoStatsFetcher:
         if int(self.videos) > int(self.maxvideos):
             self.videos = self.maxvideos
         call = 'https://api.plays.tv/data/v1/videos/search?appid={0}&appkey={1}' \
-               '&gameId={2}&limit={3}&sort=trending'.format(self.appid, self.appkey, self.gameid, self.videos)
-        r = requests.get(call)
-        return json.loads(r.text)
+               '&gameId={2}&limit={3}'.format(self.appid, self.appkey, self.gameid, self.videos)
+        try:
+            r = requests.get(call).json()
+        except Exception as e:
+            r = 'the error is %s' % e
+        return r
 
 
 class VideoFetcher:
@@ -201,7 +232,7 @@ for i in range(1, len(games)):
         else:
             hash_list = ['']
         game = games[i]
-        a = VideoStatsFilter(game, 25000, hash_list,
+        a = VideoStatsFilter(game, 50000, hash_list,
                          '2015-01-07 00:00:00', '720', 'trend')
         a.parse_videos_data()
         a.rate_videos()
