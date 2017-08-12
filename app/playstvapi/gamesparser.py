@@ -1,19 +1,28 @@
 import requests
 import json
 import pickle
+import argparse
+import sys
+sys.path.insert(0, '../../')
+import settings
 
 
 def main():
-    bar = ['League of Legends', 'DOTA 2', 'Overwatch', 'For Honor', 'Battlefield 1', 'FIFA 17', 'Rocket League']
-    foo = GamesParser(bar)
-    foo.gamelist()
+    parser = argparse.ArgumentParser()
+
+    def convert(argument):
+        return list(map(str, argument.split(', ')))
+    parser.add_argument('games', nargs='+', type=convert)
+    args = parser.parse_args()
+    gameparser = GamesParser(args.games)
+    gameparser.gamelist()
 
 
 class GamesParser:
     def __init__(self, games):
-        self.games = games
-        self.appid = 'DLKWBYCZNnBpDL4WOIRkCLFtDI7tO2RsOIGZ'
-        self.appkey = '9exhOxYiMA4l0TH_utz5LAHH4Ii2ANbX'
+        self.games = games[0]
+        self.appid = settings.PlaysTvAppId
+        self.appkey = settings.PlaysTvKey
 
     def gamelist(self):
         call = 'https://api.plays.tv/data/v1/games?appid={0}&appkey={1}'.format(self.appid, self.appkey)
@@ -43,8 +52,7 @@ class GamesParser:
                 elif game_info[name]['videos'] < videos:
                     game_info[name] = {'id': id, 'videos': videos}
         if exists:
-            print(game_info)
-            pickle.dump(game_info, open('../../Data/games.pkl', 'wb+'))
+            pickle.dump(game_info, open(settings.GamesDataPath, 'wb+'))
         return
 
 

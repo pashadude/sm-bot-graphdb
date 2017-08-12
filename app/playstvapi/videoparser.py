@@ -6,28 +6,27 @@ import requests
 import json
 import pickle
 import os
+import sys
 import datetime
 import numpy as np
 import math
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-
-
+sys.path.insert(0, '../../')
+import settings
 
 
 class VideoStatsFilter():
-
-    appid = 'DLKWBYCZNnBpDL4WOIRkCLFtDI7tO2RsOIGZ'
-    appkey = '9exhOxYiMA4l0TH_utz5LAHH4Ii2ANbX'
-
+    appid = settings.PlaysTvAppId
+    appkey = settings.PlaysTvKey
     def __init__(self, game, videos_top_share_to_look, hashtags, startdate, resolution, request_type):
         self.hashtags = hashtags
         self.game = game
         self.type = request_type
         self.top = videos_top_share_to_look
         self.request_type = request_type
-        gamedata = pickle.load(open('../../Data/games.pkl', 'rb+'))
-        pickle.dump(gamedata, open('../../Data/games.pkl', 'wb+'))
+        gamedata = pickle.load(open(settings.GamesDataPath, 'rb+'))
+        pickle.dump(gamedata, open(settings.GamesDataPath, 'wb+'))
         self.gameid = gamedata[game]['id']
         self.resolution = resolution
         self.start = startdate
@@ -136,7 +135,7 @@ class VideoStatsFilter():
         stats = VideoStatsFetcher(self.game, self.top, self.appid, self.appkey)
         stats = stats.get_vid_stats()
         if not(isinstance(stats, str)):
-            for i in stats['content']['items']:
+            for i in stats:
                 if not(os.path.exists('../../Data/videos/{0}/{1}'.format(self.game, i['id']))) and (self.resolution in i['resolutions']):
                     video = {}
                     video['id'] = i['id']
@@ -157,25 +156,44 @@ class VideoStatsFilter():
 
 
 class VideoStatsFetcher:
-    def __init__(self, game, top, appid, appkey):
-        gamedata = pickle.load(open('../../Data/games.pkl', 'rb+'))
-        pickle.dump(gamedata, open('../../Data/games.pkl', 'wb+'))
+    def __init__(self, game, top):
+        gamedata = pickle.load(open(settings.GamesDataPath, 'rb+'))
+        #print(gamedata)
+        pickle.dump(gamedata, open(settings.GamesDataPath, 'wb+'))
         self.gameid = gamedata[game]['id']
         self.maxvideos = int(gamedata[game]['videos'])
         self.videos = top
-        self.appid = appid
-        self.appkey = appkey
+        self.appid = settings.PlaysTvAppId
+        self.appkey = settings.PlaysTvKey
+
+    def get_vid_stats_page(self, page, limit):
+        call = 'https://api.plays.tv/data/v1/videos/search?appid={0}&appkey={1}' \
+               '&gameId={2}&limit={3}&page={4}'.format(self.appid, self.appkey, self.gameid, limit, page)
+        try:
+            r = requests.get(call).json()
+            r = r['content']['items']
+        except Exception as e:
+            r = 'the error is %s' % e
+        return r
 
     def get_vid_stats(self):
         if int(self.videos) > int(self.maxvideos):
             self.videos = self.maxvideos
-        call = 'https://api.plays.tv/data/v1/videos/search?appid={0}&appkey={1}' \
-               '&gameId={2}&limit={3}'.format(self.appid, self.appkey, self.gameid, self.videos)
-        try:
-            r = requests.get(call).json()
-        except Exception as e:
-            r = 'the error is %s' % e
-        return r
+        k = 1
+        vids = 0
+        data = {}
+        while vids < self.videos:
+            vids += settings.PlaysTvLinesPerPage/settings.PlaysTvLinesPerVid
+            get_vids = self.get_vid_stats_page(k, settings.PlaysTvLinesPerPage)
+            if get_vids == []:
+                break
+            if k == 1:
+                data = get_vids
+            else:
+                data.append(get_vids)
+            k += 1
+        print(vids)
+        #print(data)
 
 
 class VideoFetcher:
@@ -216,28 +234,33 @@ class VideoFetcher:
 
 
 
-scope = ['https://spreadsheets.google.com/feeds']
-credentials = ServiceAccountCredentials.from_json_keyfile_name('API Project-429c8ddbdd22.json', scope)
-gc = gspread.authorize(credentials)
-sht = gc.open('vids_data').sheet1
-games = sht.col_values(2)
-hashtags = sht.col_values(3)
-indicator = sht.col_values(7)
-for i in range(1, len(games)):
-    if(indicator[i] == ''):
-        break
-    elif(indicator[i] == 'no'):
-        if(hashtags[i] != 'FALSE'):
-            hash_list = hashtags[i].split()
-        else:
-            hash_list = ['']
-        game = games[i]
-        a = VideoStatsFilter(game, 50000, hash_list,
-                         '2015-01-07 00:00:00', '720', 'trend')
-        a.parse_videos_data()
-        a.rate_videos()
-        a.select_video()
-        sht.update_cell(i+1, 7, 'yes')
+#scope = ['https://spreadsheets.google.com/feeds']
+#credentials = ServiceAccountCredentials.from_json_keyfile_name('API Project-429c8ddbdd22.json', scope)
+#gc = gspread.authorize(credentials)
+#sht = gc.open('vids_data').sheet1
+#games = sht.col_values(2)
+#hashtags = sht.col_values(3)
+#indicator = sht.col_values(7)
+
+attempt = VideoStatsFetcher('Battlefield 1', 10000)
+attempt.get_vid_stats()
+
+
+#for i in range(1, len(games)):
+#    if(indicator[i] == ''):
+#        break
+#    elif(indicator[i] == 'no'):
+#        if(hashtags[i] != 'FALSE'):
+#            hash_list = hashtags[i].split()
+#        else:
+#            hash_list = ['']
+#        game = games[i]
+#        a = VideoStatsFilter(game, 50000, hash_list,
+#                         '2015-01-07 00:00:00', '720', 'trend')
+#        a.parse_videos_data()
+#        a.rate_videos()
+#        a.select_video()
+#        sht.update_cell(i+1, 7, 'yes')
 
 
 
