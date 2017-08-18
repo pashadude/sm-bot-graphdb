@@ -19,12 +19,16 @@ class SimilarityMeasures:
         tfidf = TfidfVectorizer().fit_transform(documents)
         return tfidf
 
-    def tf_idf_cosine(self, documents):
+    def tf_idf_cosine(self, documents, type):
         tfidf = self.tf_idf(documents)
         tf_idf_cosine_results = []
-        doc_1 = tfidf.toarray()[0]
-        print(doc_1)
-        for doc_0 in tfidf.toarray():
-            tf_idf_cosine_results.append((self.cosine_similarity(doc_0, doc_1)))
+        if type == 'vector':
+            doc_1 = tfidf.toarray()[0]
+            for doc_0 in tfidf.toarray():
+                tf_idf_cosine_results.append((self.cosine_similarity(doc_0, doc_1)))
+        elif type == 'matrix':
+            for count_0, doc_0 in enumerate(tfidf.toarray()):
+                for count_1, doc_1 in enumerate(tfidf.toarray()):
+                    tf_idf_cosine_results.append((self.cosine_similarity(doc_0, doc_1), count_0, count_1))
         return tf_idf_cosine_results
 

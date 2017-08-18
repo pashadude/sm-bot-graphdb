@@ -42,6 +42,10 @@ class VideoStatsFilter:
         parts = metatag["metatag"].split(":")
         return parts[-1]
 
+    def hashtag_list_to_str(self, hashtag_list):
+        request = " ".join(str(x) for x in hashtag_list)
+        return request
+
     def rate_videos(self):
         calc = metrics.SimilarityMeasures()
         if self.request_type == 'trend':
@@ -52,16 +56,19 @@ class VideoStatsFilter:
                     i['jaccard'] = 0.0
         elif self.request_type == 'account':
             corpus = []
-            corpus[0] = " ".join(str(x) for x in self.hashtags)
+            request = self.hashtag_list_to_str(self.hashtags)
+            corpus.append('{0} {1}'.format(request, self.game))
             for i in self.videos:
                 if 'hashtags' in i:
-                    request = " ".join(str(x) for x in i['hashtags'])
+                    request = self.hashtag_list_to_str(i['hashtags'])
                     corpus.append('{0} {1}'.format(request, self.game))
                 else:
                     corpus.append(self.game)
-            print(len(corpus))
-            tf_idf = calc.tf_idf_cosine(corpus)
-            print(tf_idf)
+            tf_idf = calc.tf_idf_cosine(corpus, 'vector')
+            k = 1
+            for j in self.videos:
+                j['cosine'] = tf_idf[k]
+                k += 1
         return
 
     def select_video(self):
@@ -74,6 +81,7 @@ class VideoStatsFilter:
             id = np.random.random_integers(int(len(self.videos)))
         else:
             id = 0
+        print(self.videos[id]['hashtags'], self.videos[id]['cosine'])
         self.videos[id]['hashtags'].append('playstv')
         self.videos[id]['hashtags'].append(self.videos[id]['author'])
         VideoFetcher('http://plays.tv/video/{0}'.format(self.videos[id]['id']), self.game, self.videos[id]['id'], self.videos[id]['hashtags']).fetch_video()
@@ -84,19 +92,21 @@ class VideoStatsFilter:
         stats = stats.get_vid_stats()
         if not (isinstance(stats, str)):
             for i in stats:
-                if not (os.path.exists('{0}/{1}/{2}'.format(settings.VideosDirPath, self.game, i['id']))) and (self.resolution in i['resolutions']):
-                    video = {}
-                    video['id'] = i['id']
-                    video['author'] = i['author']['id']
-                    video['time'] = datetime.datetime.fromtimestamp(int(i['upload_time'])).strftime('%Y-%m-%d %H:%M:%S')
-                    video['hashtags'] = []
-                    if 'metatags' in i:
-                        video['hashtags'] = self.turn_metatags_to_hashtags(i['metatags'])
-                    if 'hashtags' in i:
-                        for hash in i['hashtags']:
-                            video['hashtags'].append(hash['tag'])
-                    if video['hashtags'] != []:
-                        self.videos.append(video)
+                if not (isinstance(i, str)):
+                    if i['resolutions'] != None:
+                        if not (os.path.exists('{0}/{1}/{2}'.format(settings.VideosDirPath, self.game, i['id']))) and (self.resolution in i['resolutions']):
+                            video = {}
+                            video['id'] = i['id']
+                            video['author'] = i['author']['id']
+                            video['time'] = datetime.datetime.fromtimestamp(int(i['upload_time'])).strftime('%Y-%m-%d %H:%M:%S')
+                            video['hashtags'] = []
+                            if 'metatags' in i:
+                                video['hashtags'] = self.turn_metatags_to_hashtags(i['metatags'])
+                            if 'hashtags' in i:
+                                for hash in i['hashtags']:
+                                    video['hashtags'].append(hash['tag'])
+                            if video['hashtags'] != []:
+                                self.videos.append(video)
         return
 
 

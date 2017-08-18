@@ -2,6 +2,8 @@ import argparse
 import json
 import pickle
 import requests
+import sys
+sys.path.insert(0, '../')
 import settings
 
 
@@ -50,7 +52,8 @@ class GamesParser:
                 elif game_info[name]['videos'] < videos:
                     game_info[name] = {'id': id, 'videos': videos}
         if exists:
-            pickle.dump(game_info, open(settings.GamesDataPath, 'wb+'))
+            print(game_info)
+            pickle.dump(game_info, open('../{0}'.format(settings.GamesDataPath), 'wb+'))
         return
 
 

@@ -22,9 +22,8 @@ for i in range(1, len(games)):
         game = games[i]
         #print(game)
         #print(hash_list)
-        a = vp.VideoStatsFilter(game, 100000, hash_list, '2016-01-07 00:00:00', '720', 'account')
+        a = vp.VideoStatsFilter(game, 400, hash_list, '2016-01-07 00:00:00', '720', 'trend')
         a.parse_videos_data()
         a.rate_videos()
         a.select_video()
-        break
-        #sht.update_cell(i+1, 7, 'yes')
+        sht.update_cell(i+1, 7, 'yes')
