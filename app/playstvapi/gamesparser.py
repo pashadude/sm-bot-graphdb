@@ -1,9 +1,7 @@
-import requests
+import argparse
 import json
 import pickle
-import argparse
-import sys
-sys.path.insert(0, '../../')
+import requests
 import settings
 
 
