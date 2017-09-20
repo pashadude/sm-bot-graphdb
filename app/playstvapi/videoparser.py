@@ -3,11 +3,12 @@ from __future__ import unicode_literals
 import datetime
 import os
 import pickle
-import sys
+import mongoDBtools
 from operator import itemgetter
 import numpy as np
 import playstvapi.metrics as metrics
 import requests
+import pandas as pd
 import youtube_dl
 from YaDiskClient.YaDiskClient import YaDisk
 import settings
@@ -29,7 +30,6 @@ class VideoStatsFilter:
         self.resolution = resolution
         self.start = startdate
         self.videos = []
-
 
     def turn_metatags_to_hashtags(self, metatags):
         hashtags = []
@@ -71,6 +71,20 @@ class VideoStatsFilter:
                 k += 1
         return
 
+    def publish_video(self, id):
+        stop = False
+        while stop != True:
+            try:
+                fetcher = VideoFetcher('http://plays.tv/video/{0}'.format(self.videos[id]['id']), self.game, self.videos[id]['id'], self.videos[id]['hashtags'])
+                fetcher.fetch_video()
+                uploader = VideoUploader(self.game, fetcher.videoFolderPath)
+                stop = True
+            except BaseException:
+                print("fail")
+                id += 1
+        return
+
+
     def select_video(self):
         if self.request_type == 'trend':
             param = 'jaccard'
@@ -81,11 +95,10 @@ class VideoStatsFilter:
             id = np.random.random_integers(int(len(self.videos)))
         else:
             id = 0
-        print(self.videos[id]['hashtags'], self.videos[id]['cosine'])
+        print(self.videos[id]['hashtags'], self.videos[id]['jaccard'])
         self.videos[id]['hashtags'].append('playstv')
         self.videos[id]['hashtags'].append(self.videos[id]['author'])
-        VideoFetcher('http://plays.tv/video/{0}'.format(self.videos[id]['id']), self.game, self.videos[id]['id'], self.videos[id]['hashtags']).fetch_video()
-        return
+        return id
 
     def parse_videos_data(self):
         stats = VideoStatsFetcher(self.game, self.top)
@@ -179,6 +192,7 @@ class VideoFetcher:
         self.hashtags = hashtags
 
     def fetch_video(self):
+        print(self.uri)
         ydl_opts = {
             'format': 'best',
             'preferredcodec': 'mp3',
@@ -186,8 +200,10 @@ class VideoFetcher:
         }
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([self.uri])
-        myFilePath = os.path.join('{0}/{1}/{2}/'.format(settings.VideosDirPath, self.game, self.id), 'hashtags.txt')
-        linkFilePath = os.path.join('{0}/{1}/{2}/'.format(settings.VideosDirPath, self.game, self.id), 'link_to_original.txt')
+        self.videoFolderPath = '{0}/{1}/{2}/'.format(settings.VideosDirPath, self.game, self.id)
+        myFilePath = os.path.join(self.videoFolderPath, 'hashtags.txt')
+        linkFilePath = os.path.join(self.videoFolderPath, 'link_to_original.txt')
+
         utf_hashtags = []
         for i in self.hashtags:
             i = '#{0}'.format(i)
