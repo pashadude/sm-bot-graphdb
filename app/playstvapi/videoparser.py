@@ -125,10 +125,10 @@ class VideoStatsFilter:
 
 class VideoStatsFetcher:
     def __init__(self, game, top):
-        gamedata = pickle.load(open(settings.GamesDataPath, 'rb+'))
-        pickle.dump(gamedata, open(settings.GamesDataPath, 'wb+'))
-        self.gameid = gamedata[game]['id']
-        self.maxvideos = int(gamedata[game]['videos'])
+        db = mongoDBtools.MongoDbTools('GameStats')
+        gamedata = db.read_videodata_from_db({"name": game})
+        self.gameid = gamedata['id'][0]
+        self.maxvideos = int(gamedata['videos'][0])
         self.videos = top
         self.appid = settings.PlaysTvAppId
         self.appkey = settings.PlaysTvKey
@@ -159,7 +159,7 @@ class VideoStatsFetcher:
             else:
                 data += get_vids
             k += 1
-        return data
+        return 
 
 
 class VideoUploader:

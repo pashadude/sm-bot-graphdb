@@ -5,7 +5,7 @@ import requests
 import sys
 sys.path.insert(0, '../')
 import settings
-
+import mongoDBtools
 
 def main():
     parser = argparse.ArgumentParser()
@@ -26,6 +26,7 @@ class GamesParser:
 
     def gamelist(self):
         call = 'https://api.plays.tv/data/v1/games?appid={0}&appkey={1}'.format(self.appid, self.appkey)
+        print(self.games)
         r = requests.get(call)
         if r.status_code != 404:
             if r.status_code == 200:
@@ -38,22 +39,20 @@ class GamesParser:
             return 'down'
 
     def parse_gamelist(self, gamelist):
-        game_info = {}
         game_data = json.loads(gamelist)
-        exists = False
         for i in game_data['content']['games'].values():
             if i['title'] in self.games:
                 name = i['title']
                 id = i['id']
                 videos = i['stats']['videos']
-                exists = True
-                if not(name in game_info.keys()):
-                    game_info[name] = {'id': id, 'videos': videos}
-                elif game_info[name]['videos'] < videos:
-                    game_info[name] = {'id': id, 'videos': videos}
-        if exists:
-            print(game_info)
-            pickle.dump(game_info, open('../{0}'.format(settings.GamesDataPath), 'wb+'))
+                js = {'id': id, 'videos': videos, 'name': name}
+                db = mongoDBtools.MongoDbTools('GameStats')
+                current = db.read_videodata_from_db({"name": name})
+                if len(current) == 0:
+                    db.write_videodata_to_db(js)
+                elif current['videos'][0] < videos:
+                    #print(current['id'][0], db.read_videodata_from_db({"id": current['id'][0]}))
+                    db.replace_videodata_from_db(current['id'][0], js)
         return
 
 
