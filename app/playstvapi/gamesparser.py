@@ -1,6 +1,5 @@
 import argparse
 import json
-import pickle
 import requests
 import sys
 sys.path.insert(0, '../')

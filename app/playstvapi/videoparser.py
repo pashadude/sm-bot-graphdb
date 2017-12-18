@@ -21,15 +21,10 @@ class VideoStatsFilter:
     def __init__(self, game, videos_top_share_to_look, hashtags, startdate, resolution, request_type):
         self.hashtags = hashtags
         self.game = game
-        self.type = request_type
-        self.top = videos_top_share_to_look
         self.request_type = request_type
-        gamedata = pickle.load(open(settings.GamesDataPath, 'rb+'))
-        pickle.dump(gamedata, open(settings.GamesDataPath, 'wb+'))
-        self.gameid = gamedata[game]['id']
         self.resolution = resolution
-        self.start = startdate
-        self.videos = []
+        db = mongoDBtools.MongoDbTools('GameStats')
+        gamedata = db.read_videodata_from_db({"name": game})
 
     def turn_metatags_to_hashtags(self, metatags):
         hashtags = []
@@ -101,7 +96,6 @@ class VideoStatsFilter:
         return id
 
     def parse_videos_data(self):
-        stats = VideoStatsFetcher(self.game, self.top)
         stats = stats.get_vid_stats()
         if not (isinstance(stats, str)):
             for i in stats:
@@ -124,14 +118,27 @@ class VideoStatsFilter:
 
 
 class VideoStatsFetcher:
-    def __init__(self, game, top):
+    def __init__(self, game, top, resolution='1080'):
         db = mongoDBtools.MongoDbTools('GameStats')
+        self.resolution = resolution
+        self.db_game = mongoDBtools.MongoDbTools(game)
         gamedata = db.read_videodata_from_db({"name": game})
         self.gameid = gamedata['id'][0]
         self.maxvideos = int(gamedata['videos'][0])
         self.videos = top
         self.appid = settings.PlaysTvAppId
         self.appkey = settings.PlaysTvKey
+
+    def turn_metatags_to_hashtags(self, metatags):
+        hashtags = []
+        for i in metatags:
+            hashtag = self.parse_metatag(i)
+            hashtags.append(hashtag)
+        return hashtags
+
+    def parse_metatag(self, metatag):
+        parts = metatag["metatag"].split(":")
+        return parts[-1]
 
     def get_vid_stats_page(self, page, limit):
         call = 'https://api.plays.tv/data/v1/videos/search?appid={0}&appkey={1}' \
@@ -143,7 +150,7 @@ class VideoStatsFetcher:
             r = 'the error is %s' % e
         return r
 
-    def get_vid_stats(self):
+    def save_vid_stats(self):
         if int(self.videos) > int(self.maxvideos):
             self.videos = self.maxvideos
         k = 1
@@ -159,7 +166,34 @@ class VideoStatsFetcher:
             else:
                 data += get_vids
             k += 1
-        return 
+            self.store_game_videos(get_vids)
+        return
+
+    def store_game_videos(self, data):
+        for i in data:
+            if not (isinstance(i, str)):
+                if i['resolutions'] != None:
+                    #print(self.resolution in i['resolutions'])
+                    if len(self.db_game.read_videodata_from_db({"id": i['id']})) == 0 and (self.resolution in i['resolutions']):
+                        video = {}
+                        video['id'] = i['id']
+                        video['author'] = i['author']['id']
+                        video['time'] = datetime.datetime.fromtimestamp(int(i['upload_time'])).strftime(
+                            '%Y-%m-%d %H:%M:%S')
+                        video['hashtags'] = []
+                        video['title'] = i['description']
+                        video['rating'] = (int(i['stats']['views']) + int(i['stats']['likes'])*5)/(int(i['author']['stats']['followers'])+1)
+                        #print(rating)
+                        #break
+                        if 'metatags' in i:
+                            video['hashtags'] = self.turn_metatags_to_hashtags(i['metatags'])
+                        if 'hashtags' in i:
+                            for hash in i['hashtags']:
+                                video['hashtags'].append(hash['tag'])
+                        video['hashtags'].append(i['author']['id'])
+                        video['hashtags'].append(video['title'])
+                        self.db_game.write_videodata_to_db(video)
+        return
 
 
 class VideoUploader:
