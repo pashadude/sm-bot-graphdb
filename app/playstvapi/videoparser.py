@@ -15,106 +15,75 @@ import settings
 
 
 class VideoStatsFilter:
-    appid = settings.PlaysTvAppId
-    appkey = settings.PlaysTvKey
-
-    def __init__(self, game, videos_top_share_to_look, hashtags, startdate, resolution, request_type):
+    def __init__(self, game, hashtags, request_type):
         self.hashtags = hashtags
         self.game = game
         self.request_type = request_type
-        self.resolution = resolution
-        db = mongoDBtools.MongoDbTools('GameStats')
-        gamedata = db.read_videodata_from_db({"name": game})
-
-    def turn_metatags_to_hashtags(self, metatags):
-        hashtags = []
-        for i in metatags:
-            hashtag = self.parse_metatag(i)
-            hashtags.append(hashtag)
-        return hashtags
-
-    def parse_metatag(self, metatag):
-        parts = metatag["metatag"].split(":")
-        return parts[-1]
+        self.reply = "no similar video yet"
+        self.db_game = mongoDBtools.MongoDbTools(self.game)
 
     def hashtag_list_to_str(self, hashtag_list):
         request = " ".join(str(x) for x in hashtag_list)
         return request
 
     def rate_videos(self):
-        calc = metrics.SimilarityMeasures()
-        if self.request_type == 'trend':
-            for i in self.videos:
-                if 'hashtags' in i:
-                    i['jaccard'] = calc.jaccard_similarity(self.hashtags, i['hashtags'])
-                else:
-                    i['jaccard'] = 0.0
-        elif self.request_type == 'account':
-            corpus = []
-            request = self.hashtag_list_to_str(self.hashtags)
-            corpus.append('{0} {1}'.format(request, self.game))
-            for i in self.videos:
-                if 'hashtags' in i:
-                    request = self.hashtag_list_to_str(i['hashtags'])
+        start = True
+        for word in self.hashtags:
+            if start == True:
+                data = self.db_game.read_text_index_videodata_from_db("hashtags", '"' + (str(word)) + '"')
+                if not isinstance(data, str) and not data.empty:
+                    start = False
+            elif start == False:
+                datax = self.db_game.read_text_index_videodata_from_db("hashtags", '"' + (str(word)) + '"')
+                if not isinstance(datax, str) and not datax.empty:
+                    data = data.append(datax, ignore_index=True)
+        #print(data)
+        if not isinstance(data, str) and not data.empty:
+            data = data[pd.notnull(data['id'])]
+            data = data.drop_duplicates("id", "first")
+            data = data.reset_index()
+            self.data = data
+            #print(data)
+            calc = metrics.SimilarityMeasures()
+            k = len(data)
+            vid = 0
+            num = 0
+            num_id = ''
+            tf_idf = -1
+            if self.request_type == 'trend':
+                while vid < k:
+                    jac = calc.jaccard_similarity(data['hashtags'][vid], self.hashtags)
+                    if num <= jac:
+                        num = jac
+                        num_id = data['id'][vid]
+                    vid += 1
+                #print(num_id)
+                self.reply = num_id
+                self.publish_video()
+
+            elif self.request_type == 'account':
+                corpus = []
+                request = self.hashtag_list_to_str(self.hashtags)
+                corpus.append('{0} {1}'.format(request, self.game))
+                while vid < k:
+                    request = self.hashtag_list_to_str(data['hashtags'][vid])
                     corpus.append('{0} {1}'.format(request, self.game))
-                else:
-                    corpus.append(self.game)
-            tf_idf = calc.tf_idf_cosine(corpus, 'vector')
-            k = 1
-            for j in self.videos:
-                j['cosine'] = tf_idf[k]
-                k += 1
-        return
+                tf_idf = calc.tf_idf_cosine(corpus, 'vector')
+                # need to fix
+                self.reply = max(tf_idf)
 
-    def publish_video(self, id):
-        stop = False
-        while stop != True:
-            try:
-                fetcher = VideoFetcher('http://plays.tv/video/{0}'.format(self.videos[id]['id']), self.game, self.videos[id]['id'], self.videos[id]['hashtags'])
-                fetcher.fetch_video()
-                uploader = VideoUploader(self.game, fetcher.videoFolderPath)
-                stop = True
-            except BaseException:
-                print("fail")
-                id += 1
+    def publish_video(self):
+
+        try:
+            fetcher = VideoFetcher('http://plays.tv/video/{0}'.format(self.data.loc[self.reply, 'id']), self.game, self.data.loc[self.reply,'id'], self.data.loc[self.reply,'hashtags'])
+            fetcher.fetch_video()
+            uploader = VideoUploader(self.game, fetcher.videoFolderPath)
+            uploader.upload_yandex_disk()
+        except BaseException:
+            print("fail")
         return
 
 
-    def select_video(self):
-        if self.request_type == 'trend':
-            param = 'jaccard'
-        elif self.request_type == 'account':
-            param = 'cosine'
-        self.videos = sorted(self.videos, key=itemgetter(param), reverse=True)
-        if self.videos[0][param] == 0.0:
-            id = np.random.random_integers(int(len(self.videos)))
-        else:
-            id = 0
-        print(self.videos[id]['hashtags'], self.videos[id]['jaccard'])
-        self.videos[id]['hashtags'].append('playstv')
-        self.videos[id]['hashtags'].append(self.videos[id]['author'])
-        return id
-
-    def parse_videos_data(self):
-        stats = stats.get_vid_stats()
-        if not (isinstance(stats, str)):
-            for i in stats:
-                if not (isinstance(i, str)):
-                    if i['resolutions'] != None:
-                        if not (os.path.exists('{0}/{1}/{2}'.format(settings.VideosDirPath, self.game, i['id']))) and (self.resolution in i['resolutions']):
-                            video = {}
-                            video['id'] = i['id']
-                            video['author'] = i['author']['id']
-                            video['time'] = datetime.datetime.fromtimestamp(int(i['upload_time'])).strftime('%Y-%m-%d %H:%M:%S')
-                            video['hashtags'] = []
-                            if 'metatags' in i:
-                                video['hashtags'] = self.turn_metatags_to_hashtags(i['metatags'])
-                            if 'hashtags' in i:
-                                for hash in i['hashtags']:
-                                    video['hashtags'].append(hash['tag'])
-                            if video['hashtags'] != []:
-                                self.videos.append(video)
-        return
 
 
 class VideoStatsFetcher:
@@ -182,7 +151,6 @@ class VideoStatsFetcher:
                             '%Y-%m-%d %H:%M:%S')
                         video['hashtags'] = []
                         video['title'] = i['description']
-                        video['rating'] = (int(i['stats']['views']) + int(i['stats']['likes'])*5)/(int(i['author']['stats']['followers'])+1)
                         #print(rating)
                         #break
                         if 'metatags' in i:
@@ -192,6 +160,7 @@ class VideoStatsFetcher:
                                 video['hashtags'].append(hash['tag'])
                         video['hashtags'].append(i['author']['id'])
                         video['hashtags'].append(video['title'])
+                        #print(video)
                         self.db_game.write_videodata_to_db(video)
         return
 

@@ -12,4 +12,5 @@ MongoPort = 27017
 MongoUserName = ''
 MongoPassword = ''
 MongoDb = 'gamevideos'
+ReplyLen = 5
 
