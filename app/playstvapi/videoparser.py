@@ -19,7 +19,8 @@ class VideoStatsFilter:
         self.hashtags = hashtags
         self.game = game
         self.request_type = request_type
-        self.reply = "no similar video yet"
+        self.reply_id = "no similar video yet"
+        self.reply_hashtags = ""
         self.db_game = mongoDBtools.MongoDbTools(self.game)
 
     def hashtag_list_to_str(self, hashtag_list):
@@ -42,24 +43,22 @@ class VideoStatsFilter:
             data = data[pd.notnull(data['id'])]
             data = data.drop_duplicates("id", "first")
             data = data.reset_index()
-            self.data = data
-            #print(data)
             calc = metrics.SimilarityMeasures()
             k = len(data)
             vid = 0
             num = 0
-            num_id = ''
             tf_idf = -1
             if self.request_type == 'trend':
                 while vid < k:
                     jac = calc.jaccard_similarity(data['hashtags'][vid], self.hashtags)
                     if num <= jac:
                         num = jac
-                        num_id = data['id'][vid]
+                        self.reply_id = str(data['id'][vid])
+                        self.reply_hashtags = data['hashtags'][vid]
                     vid += 1
-                #print(num_id)
-                self.reply = num_id
-                self.publish_video()
+
+                if self.reply_id != "no similar video yet":
+                    self.publish_video()
 
             elif self.request_type == 'account':
                 corpus = []
@@ -73,9 +72,8 @@ class VideoStatsFilter:
                 self.reply = max(tf_idf)
 
     def publish_video(self):
-
         try:
-            fetcher = VideoFetcher('http://plays.tv/video/{0}'.format(self.data.loc[self.reply, 'id']), self.game, self.data.loc[self.reply,'id'], self.data.loc[self.reply,'hashtags'])
+            fetcher = VideoFetcher('http://plays.tv/video/{0}'.format(self.reply_id), self.game, self.reply_id, self.reply_hashtags)
             fetcher.fetch_video()
             uploader = VideoUploader(self.game, fetcher.videoFolderPath)
             uploader.upload_yandex_disk()
@@ -166,24 +164,24 @@ class VideoStatsFetcher:
 
 
 class VideoUploader:
-    Ylogin = settings.Ylogin
-    Ypassword = settings.Ypassword
 
     def __init__(self, game, videofolder):
         self.game = game
         self.videofolder = videofolder
         self.timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.pathtovids = settings.VideosDirPath
+        self.Ylogin = settings.Ylogin
+        self.Ypassword = settings.Ypassword
 
     def upload_yandex_disk(self):
         disk = YaDisk(self.Ylogin, self.Ypassword)
-        disk.mkdir('Videos/{0}/{1}'.format(self.game, self.timestamp))
-        disk.upload('{0}/{1}/{2}/video.mp4'.format(self.pathtovids, self.game, self.videofolder),
-                    'Videos/{0}/{1}/video.mp4'.format(self.game, self.timestamp))
-        disk.upload('{0}/{1}/{2}/hashtags.txt'.format(self.pathtovids, self.game, self.videofolder),
-                    'Videos/{0}/{1}/hashtags.txt'.format(self.game, self.timestamp))
-        disk.upload('{0}/{1}/{2}/link_to_original.txt'.format(self.pathtovids, self.game, self.videofolder),
-                    'Videos/{0}/{1}/link_to_original.txt'.format(self.game, self.timestamp))
+        #disk.mkdir('Videos/{0}/{1}'.format(self.game, self.timestamp))
+        #disk.upload('{0}/{1}/{2}/video.mp4'.format(self.pathtovids, self.game, self.videofolder),
+        #            'Videos/{0}/{1}/video.mp4'.format(self.game, self.timestamp))
+        #disk.upload('{0}/{1}/{2}/hashtags.txt'.format(self.pathtovids, self.game, self.videofolder),
+        #            'Videos/{0}/{1}/hashtags.txt'.format(self.game, self.timestamp))
+        #disk.upload('{0}/{1}/{2}/link_to_original.txt'.format(self.pathtovids, self.game, self.videofolder),
+        #            'Videos/{0}/{1}/link_to_original.txt'.format(self.game, self.timestamp))
         return
 
 
@@ -209,8 +207,8 @@ class VideoFetcher:
 
         utf_hashtags = []
         for i in self.hashtags:
-            i = '#{0}'.format(i)
-            utf_hashtags.append(i.encode('utf-8'))
+            utf_hashtags.append("#{0}".format(i))
+        print(utf_hashtags)
         np.savetxt(myFilePath, ["%s" % utf_hashtags], fmt='%s')
         with open(linkFilePath, "w") as text_file:
             text_file.write(self.uri)
