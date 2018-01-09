@@ -175,13 +175,14 @@ class VideoUploader:
 
     def upload_yandex_disk(self):
         disk = YaDisk(self.Ylogin, self.Ypassword)
-        #disk.mkdir('Videos/{0}/{1}'.format(self.game, self.timestamp))
-        #disk.upload('{0}/{1}/{2}/video.mp4'.format(self.pathtovids, self.game, self.videofolder),
-        #            'Videos/{0}/{1}/video.mp4'.format(self.game, self.timestamp))
-        #disk.upload('{0}/{1}/{2}/hashtags.txt'.format(self.pathtovids, self.game, self.videofolder),
-        #            'Videos/{0}/{1}/hashtags.txt'.format(self.game, self.timestamp))
-        #disk.upload('{0}/{1}/{2}/link_to_original.txt'.format(self.pathtovids, self.game, self.videofolder),
-        #            'Videos/{0}/{1}/link_to_original.txt'.format(self.game, self.timestamp))
+        print('{0}video.mp4'.format(self.videofolder))
+        disk.mkdir('Videos/{0}/{1}'.format(self.game, self.timestamp))
+        disk.upload('{0}video.mp4'.format(self.videofolder),
+                    'Videos/{0}/{1}/video.mp4'.format(self.game, self.timestamp))
+        disk.upload('{0}hashtags.txt'.format(self.videofolder),
+                    'Videos/{0}/{1}/hashtags.txt'.format(self.game, self.timestamp))
+        disk.upload('{0}link_to_original.txt'.format(self.videofolder),
+                    'Videos/{0}/{1}/link_to_original.txt'.format(self.game, self.timestamp))
         return
 
 
@@ -193,7 +194,7 @@ class VideoFetcher:
         self.hashtags = hashtags
 
     def fetch_video(self):
-        print(self.uri)
+        #print(self.uri)
         ydl_opts = {
             'format': 'best',
             'preferredcodec': 'mp3',
@@ -208,7 +209,7 @@ class VideoFetcher:
         utf_hashtags = []
         for i in self.hashtags:
             utf_hashtags.append("#{0}".format(i))
-        print(utf_hashtags)
+        #print(utf_hashtags)
         np.savetxt(myFilePath, ["%s" % utf_hashtags], fmt='%s')
         with open(linkFilePath, "w") as text_file:
             text_file.write(self.uri)
