@@ -12,5 +12,10 @@ MongoPort = 27017
 MongoUserName = ''
 MongoPassword = ''
 MongoDb = 'gamevideos'
+twitter_consumer_key = "4MqIMsUyXiOb7En65t973cRYK"
+twitter_consumer_secret = "dNoS2k8pWrB74x7HJzEU9plSfj7FgfUtZGRbUyoKF9pyCB9uy5"
+twitter_access_key = "509969813-p00p4cVEOXX1mMXFMh3DqYN5Lsjpp8apoEHAe0dk"
+twitter_access_secret = "DEVwEgH4of4DgRsHDVPdV9mDN0a5RKKFYSknLr4OknUPM"
+twitter_account_name = "ProveYourSkillz"
 ReplyLen = 5
 
