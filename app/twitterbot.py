@@ -43,7 +43,8 @@ class TwitterNeo4jController:
         #self.graph.delete_all()
 
     def insert_user(self, user_id, user_properties):
-        user = self.graph.merge_one("User", "id", user_id)
+        user = Node("User", id=user_id)
+        self.graph.merge(user)
         try:
             user.properties['name'] = user_properties['name']
             user.properties['created_at'] = user_properties['created_at']
@@ -75,38 +76,48 @@ class TwitterNeo4jController:
         return user
 
     def insert_tweet(self, user_id, tweet_id):
-        user = self.graph.merge_one("User", "id", user_id)
-        tweet = self.graph.merge_one("Tweet", "id", tweet_id)
+        user = Node("User", id=user_id)
+        self.graph.merge(user)
+        tweet = Node("Tweet", id=tweet_id)
+        self.graph.merge(tweet)
         tweeted = Relationship(user, "tweeted", tweet)
-        self.graph.create_unique(tweeted)
+        self.graph.merge(tweeted)
         return
 
     def insert_following(self, user_id, follower_id):
-        user = self.graph.merge_one("User", "id", user_id)
-        follower = self.graph.merge_one("User", "id", follower_id)
+        user = Node("User", id=user_id)
+        self.graph.merge(user)
+        follower = Node("User", id=follower_id)
+        self.graph.merge(follower)
         following = Relationship(follower, "follows", user)
-        self.graph.create_unique(following)
+        self.graph.merge(following)
         return
 
     def insert_retweet(self, tweet_id, user_id):
-        original_tweet = self.graph.merge_one("Tweet", "id", tweet_id)
-        user = self.graph.merge_one("User", "id", user_id)
+        original_tweet = Node("Tweet", id=tweet_id)
+        self.graph.merge(original_tweet)
+        user = Node("User", id=user_id)
+        self.graph.merge(user)
         retweeted = Relationship(user, "retweets", original_tweet)
-        self.graph.create_unique(retweeted)
+        self.graph.merge(retweeted)
         return
 
     def insert_hashtag(self, tweet_id, hashtag_text):
-        original_tweet = self.graph.merge_one("Tweet", "id", tweet_id)
-        hashtag = self.graph.merge_one("Hashtag", "text", hashtag_text)
+        original_tweet = Node("Tweet", id=tweet_id)
+        self.graph.merge(original_tweet)
+        hashtag = Node("Hashtag", text=hashtag_text)
+        self.graph.merge(hashtag)
         tagged = Relationship(original_tweet, "tagged", hashtag)
-        self.graph.create_unique(tagged)
+        self.graph.merge(tagged)
         return
 
     def insert_like(self, tweet_id, user_id):
-        tweet = self.graph.merge_one("Tweet", "id", tweet_id)
-        user = self.graph.merge_one("User", "id", user_id)
+        tweet = Node("Tweet", id=tweet_id)
+        self.graph.merge(tweet)
+        user = Node("User", id=user_id)
+        self.graph.merge(user)
         liked = Relationship(user, "likes", tweet)
-        self.graph.create_unique(liked)
+        self.graph.merge(liked)
         return
 
 
