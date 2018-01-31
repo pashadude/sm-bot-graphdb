@@ -1,7 +1,7 @@
 import tweepy
 import settings
 from py2neo import Graph, Node, Relationship, authenticate
-from py2neo import neo4j
+#from py2neo import neo4j
 
 
 class TwitterStatsFetcher:
@@ -10,6 +10,15 @@ class TwitterStatsFetcher:
         auth.set_access_token(settings.twitter_access_key, settings.twitter_access_secret)
         self.twitter = tweepy.API(auth)
         self.twitter_username = settings.twitter_account_name
+
+    def getAccount(self, screen_name):
+        return self.twitter.get_user(screen_name=screen_name)
+
+    def getAccountId(self, user):
+        return user.screen_name
+
+    def getSelf(self):
+        return self.twitter.me()
 
     def getFollowers(self, user):
         return tweepy.Cursor(self.twitter.followers, id=user)
@@ -51,7 +60,7 @@ class TwitterNeo4jController:
             user.properties['default_profile'] = user_properties['default_profile']
             user.properties['default_profile_image'] = user_properties['default_profile_image']
             user.properties['description'] = user_properties['description']
-            user.properties['favorites_count'] = user_properties['favorites_count']
+            user.properties['favourites_count'] = user_properties['favourites_count']
             user.properties['followers_count'] = user_properties['followers_count']
             user.properties['friends_count'] = user_properties['friends_count']
             user.properties['geo_enabled'] = user_properties['geo_enabled']
@@ -61,7 +70,7 @@ class TwitterNeo4jController:
             user.properties['location'] = user_properties['location']
             user.properties['notifications'] = user_properties['notifications']
             user.properties['profile_background_image_url'] = user_properties['profile_background_image_url']
-            user.properties['profile_banner_url'] = user_properties['profile_banner_url']
+            #user.properties['profile_banner_url'] = user_properties['profile_banner_url']
             user.properties['profile_image_url'] = user_properties['profile_image_url']
             user.properties['protected'] = user_properties['protected']
             user.properties['screen_name'] = user_properties['screen_name']
@@ -127,6 +136,24 @@ class TwitterBotController:
         self.twitterInput = TwitterStatsFetcher()
 
     def makeUserGraph(self, user):
+        user = self.twitterInput.getAccountId(user)
+        #user_id = testee.twitterInput.getAccountId(user)
+        return
+
+    def makeMyGraph(self):
+        me = self.twitterInput.getSelf()
+        props = me._json
+        #print(props)
+        my_id = self.twitterInput.getAccountId(me)
+        self.twitterSchema.insert_user(my_id, props)
+        my_followers = self.twitterInput.getFollowers(my_id)
+        for user in my_followers.items():
+            self.twitterSchema.insert_user(user._json['id'], user._json)
+            self.twitterSchema.insert_following(my_id, user._json['id'])
+        my_influencers = self.twitterInput.getInfluencers(my_id)
+        for user in my_influencers.items():
+            self.twitterSchema.insert_user(user._json['id'], user._json)
+            self.twitterSchema.insert_following(user._json['id'], my_id)
         return
 
     def getTargets(self):
@@ -148,4 +175,8 @@ class TwitterBotController:
         return
 
 
-
+testee = TwitterBotController()
+me = testee.twitterInput.getSelf()
+my_id = testee.twitterInput.getAccountId(me)
+print(my_id)
+testee.makeMyGraph()
