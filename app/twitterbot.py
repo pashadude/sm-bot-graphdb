@@ -1,5 +1,6 @@
 import tweepy
 import settings
+import time
 from py2neo import Graph, Node, Relationship, authenticate
 #from py2neo import neo4j
 
@@ -13,9 +14,6 @@ class TwitterStatsFetcher:
 
     def getAccount(self, screen_name):
         return self.twitter.get_user(screen_name=screen_name)
-
-    def getAccountId(self, user):
-        return user.screen_name
 
     def getSelf(self):
         return self.twitter.me()
@@ -42,7 +40,7 @@ class TwitterStatsFetcher:
         return self.twitter.create_favorite(tweet)
 
     def retweet(self, tweet):
-        return self.twitter.retweer(tweet)
+        return self.twitter.retweet(tweet)
 
 
 class TwitterNeo4jController:
@@ -134,26 +132,31 @@ class TwitterBotController:
     def __init__(self):
         self.twitterSchema = TwitterNeo4jController()
         self.twitterInput = TwitterStatsFetcher()
+        self.me = self.twitterInput.getSelf()
+
 
     def makeUserGraph(self, user):
-        user = self.twitterInput.getAccountId(user)
-        #user_id = testee.twitterInput.getAccountId(user)
+        props = user._json
         return
 
     def makeMyGraph(self):
-        me = self.twitterInput.getSelf()
-        props = me._json
-        #print(props)
-        my_id = self.twitterInput.getAccountId(me)
+        props = self.me._json
+        my_id = self.me.id
         self.twitterSchema.insert_user(my_id, props)
         my_followers = self.twitterInput.getFollowers(my_id)
         for user in my_followers.items():
             self.twitterSchema.insert_user(user._json['id'], user._json)
             self.twitterSchema.insert_following(my_id, user._json['id'])
+            time.sleep(5)
         my_influencers = self.twitterInput.getInfluencers(my_id)
         for user in my_influencers.items():
             self.twitterSchema.insert_user(user._json['id'], user._json)
             self.twitterSchema.insert_following(user._json['id'], my_id)
+            time.sleep(5)
+        return
+
+    def pushUserFeed(self, user):
+        props = user._json
         return
 
     def getTargets(self):
@@ -163,6 +166,23 @@ class TwitterBotController:
         return
 
     def unfollowNonfollowers(self):
+        followers = []
+        influencers = []
+        follower_threshold = 1000
+        my_id = self.me.id
+        my_influencers = self.twitterInput.getInfluencers(my_id)
+        for user in my_influencers.items():
+            time.sleep(5)
+            if int(user._json['followers_count']) < 1000:
+                influencers.append(user._json['screen_name'])
+        my_followers = self.twitterInput.getFollowers(my_id)
+        for user in my_followers.items():
+            followers.append(user._json['screen_name'])
+        for candidate in influencers:
+            if not(candidate in followers):
+                print("unfollowed", candidate)
+                target = self.twitterInput.getAccount(candidate)
+                self.twitterInput.unfollow(target.id)
         return
 
     def retweetGamerHashtags(self):
@@ -171,12 +191,8 @@ class TwitterBotController:
     def followSimilarInfluenced(self):
         return
 
-    def requestFollowers(self):
-        return
-
 
 testee = TwitterBotController()
-me = testee.twitterInput.getSelf()
-my_id = testee.twitterInput.getAccountId(me)
-print(my_id)
-testee.makeMyGraph()
+
+testee.unfollowNonfollowers()
+#testee.makeMyGraph()
