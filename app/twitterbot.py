@@ -1,6 +1,7 @@
 import tweepy
 import settings
 import time
+import playstvapi.metrics as metrics
 from py2neo import Graph, Node, Relationship, authenticate
 #from py2neo import neo4j
 
@@ -18,14 +19,14 @@ class TwitterStatsFetcher:
     def getSelf(self):
         return self.twitter.me()
 
-    def getFollowers(self, user):
-        return tweepy.Cursor(self.twitter.followers, id=user)
+    def getFollowers(self, user_id):
+        return tweepy.Cursor(self.twitter.followers, id=user_id)
 
-    def getInfluencers(self, user):
-        return tweepy.Cursor(self.twitter.friends, id=user)
+    def getInfluencers(self, user_id):
+        return tweepy.Cursor(self.twitter.friends, id=user_id)
 
-    def getTweets(self, user):
-        return tweepy.Cursor(self.twitter.user_timeline, id=user)
+    def getFeed(self, user_id):
+        return tweepy.Cursor(self.twitter.user_timeline, id=user_id)
 
     def getHashtags(self, tweet):
         return tweet.entities.get('hashtags')
@@ -133,11 +134,13 @@ class TwitterBotController:
         self.twitterSchema = TwitterNeo4jController()
         self.twitterInput = TwitterStatsFetcher()
         self.me = self.twitterInput.getSelf()
+        self.inflgamers = settings.twitter_account_gamers
 
 
     def makeUserGraph(self, user):
         props = user._json
         return
+
 
     def makeMyGraph(self):
         props = self.me._json
@@ -155,8 +158,12 @@ class TwitterBotController:
             time.sleep(5)
         return
 
-    def pushUserFeed(self, user):
-        props = user._json
+    def pushInfluencerFeed(self, user_name):
+        user = self.twitterInput.getAccount(user_name)
+        #print(user._json)
+        tweet_feed = self.twitterInput.getFeed(user._json['id'])
+        for status in tweet_feed.items(25):
+            print(status._json['text'], status._json['entities']['hashtags'], status._json['entities']['user_mentions'])
         return
 
     def getTargets(self):
@@ -188,11 +195,13 @@ class TwitterBotController:
     def retweetGamerHashtags(self):
         return
 
-    def followSimilarInfluenced(self):
+    def getHashtagSpace(self):
         return
 
 
-testee = TwitterBotController()
 
-testee.unfollowNonfollowers()
+testee = TwitterBotController()
+testee.pushInfluencerFeed("MinidukeLoL")
+
+#testee.unfollowNonfollowers()
 #testee.makeMyGraph()
