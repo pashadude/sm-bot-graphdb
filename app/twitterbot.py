@@ -128,6 +128,10 @@ class TwitterNeo4jController:
         self.graph.merge(liked)
         return
 
+    def get_influncers(self):
+        influencers = self.graph.data("MATCH (you)-[:follows]->(influencers) WHERE you.id = {param} RETURN influencers.id", param = settings.twitter_account_name)
+        return influencers
+
 
 class TwitterBotController:
     def __init__(self):
@@ -135,6 +139,7 @@ class TwitterBotController:
         self.twitterInput = TwitterStatsFetcher()
         self.me = self.twitterInput.getSelf()
         self.inflgamers = settings.twitter_account_gamers
+        self.corpus = []
 
 
     def makeUserGraph(self, user):
@@ -158,15 +163,33 @@ class TwitterBotController:
             time.sleep(5)
         return
 
-    def pushInfluencerFeed(self, user_name):
-        user = self.twitterInput.getAccount(user_name)
-        #print(user._json)
-        tweet_feed = self.twitterInput.getFeed(user._json['id'])
-        for status in tweet_feed.items(25):
-            print(status._json['text'], status._json['entities']['hashtags'], status._json['entities']['user_mentions'])
+    def getInfluencersFeed(self):
+        counter = 1
+        for inf in self.inflgamers:
+            user = self.twitterInput.getAccount(inf)
+            tweet_feed = self.twitterInput.getFeed(user._json['id'])
+            for status in tweet_feed.items(25):
+                text = status._json['text']
+                self.corpus.append(text)
+            if counter == 27:
+                time.sleep(900)
+                counter = 1
+            else:
+                counter+=1
         return
 
-    def getTargets(self):
+    def retweetOfTheShift(self):
+        self.getInfluencersFeed()
+        data = self.twitterSchema.get_influncers()
+        cosine = -1
+        for k in data:
+            tweet_feed = self.twitterInput.getFeed(k['influencers.id'])
+            for status in tweet_feed.items(1):
+                text = status._json['text']
+                tf_idf_space = [text] + self.corpus
+                tf_idf = metrics.SimilarityMeasures.tf_idf(tf_idf_space)
+                score = metrics.SimilarityMeasures.tf_idf_cosine(tf_idf_space, 'vector')
+                print(score)
         return
 
     def likeNewComers(self):
@@ -201,7 +224,7 @@ class TwitterBotController:
 
 
 testee = TwitterBotController()
-testee.pushInfluencerFeed("MinidukeLoL")
 
+testee.retweetOfTheShift()
 #testee.unfollowNonfollowers()
 #testee.makeMyGraph()
