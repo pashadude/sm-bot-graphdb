@@ -2,6 +2,7 @@ import tweepy
 import settings
 import time
 import playstvapi.metrics as metrics
+import numpy as np
 from py2neo import Graph, Node, Relationship, authenticate
 #from py2neo import neo4j
 
@@ -140,6 +141,7 @@ class TwitterBotController:
         self.me = self.twitterInput.getSelf()
         self.inflgamers = settings.twitter_account_gamers
         self.corpus = []
+        self.metrics = metrics.SimilarityMeasures()
 
 
     def makeUserGraph(self, user):
@@ -151,16 +153,30 @@ class TwitterBotController:
         props = self.me._json
         my_id = self.me.id
         self.twitterSchema.insert_user(my_id, props)
-        my_followers = self.twitterInput.getFollowers(my_id)
-        for user in my_followers.items():
-            self.twitterSchema.insert_user(user._json['id'], user._json)
-            self.twitterSchema.insert_following(my_id, user._json['id'])
-            time.sleep(5)
+        #my_followers = self.twitterInput.getFollowers(my_id)
+        #for user in my_followers.items():
+        #    self.twitterSchema.insert_user(user._json['id'], user._json)
+        #    self.twitterSchema.insert_following(my_id, user._json['id'])
+        #    time.sleep(5)
         my_influencers = self.twitterInput.getInfluencers(my_id)
         for user in my_influencers.items():
             self.twitterSchema.insert_user(user._json['id'], user._json)
             self.twitterSchema.insert_following(user._json['id'], my_id)
+            self.makeInfluencerGraph(user._json['id'])
             time.sleep(5)
+        return
+
+    def makeInfluencerGraph(self, influencer_id):
+        followers = self.twitterInput.getFollowers(influencer_id)
+        count = 0
+        for user in followers.items():
+            self.twitterSchema.insert_user(user._json['id'], user._json)
+            self.twitterSchema.insert_following(influencer_id, user._json['id'])
+            count+=1
+            if count%300==0:
+                time.sleep(900)
+                #count = 0
+            print(user._json['id'], count)
         return
 
     def getInfluencersFeed(self):
@@ -181,15 +197,19 @@ class TwitterBotController:
     def retweetOfTheShift(self):
         self.getInfluencersFeed()
         data = self.twitterSchema.get_influncers()
-        cosine = -1
+        cosine = 0
         for k in data:
             tweet_feed = self.twitterInput.getFeed(k['influencers.id'])
             for status in tweet_feed.items(1):
                 text = status._json['text']
                 tf_idf_space = [text] + self.corpus
-                tf_idf = metrics.SimilarityMeasures.tf_idf(tf_idf_space)
-                score = metrics.SimilarityMeasures.tf_idf_cosine(tf_idf_space, 'vector')
-                print(score)
+                #tf_idf = metrics.SimilarityMeasures.tf_idf(tf_idf_space)
+                score = self.metrics.tf_idf_cosine(tf_idf_space, 'vector')
+                if cosine < np.mean(score):
+                    cosine = np.mean(score)
+                    tweet_id = status._json['id']
+        self.twitterSchema.insert_retweet(tweet_id, self.me.id)
+        #self.twitterInput.retweet(tweet_id)
         return
 
     def likeNewComers(self):
@@ -225,6 +245,7 @@ class TwitterBotController:
 
 testee = TwitterBotController()
 
-testee.retweetOfTheShift()
+#testee.retweetOfTheShift()
+#testee.makeInfluencerGraph('Stoop_OW')
 #testee.unfollowNonfollowers()
-#testee.makeMyGraph()
+testee.makeMyGraph()
