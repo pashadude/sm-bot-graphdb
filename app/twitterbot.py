@@ -129,6 +129,16 @@ class TwitterNeo4jController:
         self.graph.merge(liked)
         return
 
+    def get_users_followers(self, user_id):
+        influencers = self.graph.data(
+            "MATCH (followers)-[:follows]->(user) WHERE user.id = {param} RETURN followers.id",
+            param=user_id)
+        return influencers
+
+    def get_past_retweets(self):
+        retweets = self.graph.data("MATCH (you)-[:retweets]->(tweets) RETURN tweets.id")
+        return retweets
+
     def get_influncers(self):
         influencers = self.graph.data("MATCH (you)-[:follows]->(influencers) WHERE you.id = {param} RETURN influencers.id", param = settings.twitter_account_name)
         return influencers
@@ -173,15 +183,15 @@ class TwitterBotController:
             self.twitterSchema.insert_user(user._json['id'], user._json)
             self.twitterSchema.insert_following(influencer_id, user._json['id'])
             count+=1
-            if count%300==0:
+            if count % 300 == 0:
                 time.sleep(900)
-                #count = 0
             print(user._json['id'], count)
         return
 
     def getInfluencersFeed(self):
         counter = 1
         for inf in self.inflgamers:
+            #print(inf)
             user = self.twitterInput.getAccount(inf)
             tweet_feed = self.twitterInput.getFeed(user._json['id'])
             for status in tweet_feed.items(25):
@@ -198,6 +208,10 @@ class TwitterBotController:
         self.getInfluencersFeed()
         data = self.twitterSchema.get_influncers()
         cosine = 0
+        retweets = []
+        for re in self.twitterSchema.get_past_retweets():
+            retweets.append(re['tweets.id'])
+        #print(retweets)
         for k in data:
             tweet_feed = self.twitterInput.getFeed(k['influencers.id'])
             for status in tweet_feed.items(1):
@@ -205,11 +219,11 @@ class TwitterBotController:
                 tf_idf_space = [text] + self.corpus
                 #tf_idf = metrics.SimilarityMeasures.tf_idf(tf_idf_space)
                 score = self.metrics.tf_idf_cosine(tf_idf_space, 'vector')
-                if cosine < np.mean(score):
+                if cosine < np.mean(score) and status._json['id'] not in retweets:
                     cosine = np.mean(score)
                     tweet_id = status._json['id']
         self.twitterSchema.insert_retweet(tweet_id, self.me.id)
-        #self.twitterInput.retweet(tweet_id)
+        self.twitterInput.retweet(tweet_id)
         return
 
     def likeNewComers(self):
