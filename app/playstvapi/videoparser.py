@@ -75,6 +75,7 @@ class VideoStatsFilter:
         try:
             fetcher = VideoFetcher('http://plays.tv/video/{0}'.format(self.reply_id), self.game, self.reply_id, self.reply_hashtags)
             fetcher.fetch_video()
+            self.db_game.delete_videodata_from_db(self.reply_id)
             uploader = VideoUploader(self.game, fetcher.videoFolderPath)
             uploader.upload_yandex_disk()
         except BaseException:

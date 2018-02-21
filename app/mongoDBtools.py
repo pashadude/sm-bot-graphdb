@@ -74,3 +74,12 @@ class MongoDbTools:
         except:
             return "error"
         return
+
+    def delete_videodata_from_db(self, video_id):
+        db = self.connect_to_video_db(settings.MongoHost, settings.MongoPort, settings.MongoUserName,
+                                      settings.MongoPassword, settings.MongoDb)
+        try:
+            db[self.collection].delete_one({'id': video_id})
+        except:
+            return "error"
+        return

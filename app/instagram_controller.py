@@ -26,4 +26,4 @@ for i in range(1, len(games)):
         b.save_vid_stats()
         a = vp.VideoStatsFilter(game, hash_list, 'trend')
         a.rate_videos()
-        sht.update_cell(i+1, 9, 'yes')
+        sht.update_cell(i+1, 7, 'yes')

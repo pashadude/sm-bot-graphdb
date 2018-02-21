@@ -163,6 +163,8 @@ class TwitterBotController:
         props = self.me._json
         my_id = self.me.id
         self.twitterSchema.insert_user(my_id, props)
+        userdata = []
+        count = 0
         #my_followers = self.twitterInput.getFollowers(my_id)
         #for user in my_followers.items():
         #    self.twitterSchema.insert_user(user._json['id'], user._json)
@@ -170,22 +172,32 @@ class TwitterBotController:
         #    time.sleep(5)
         my_influencers = self.twitterInput.getInfluencers(my_id)
         for user in my_influencers.items():
-            self.twitterSchema.insert_user(user._json['id'], user._json)
-            self.twitterSchema.insert_following(user._json['id'], my_id)
-            self.makeInfluencerGraph(user._json['id'])
+            userdata.append(user._json)
+            print(user._json['id'], count)
+            count+=1
+            if count%250==0:
+                time.sleep(900)
+        for user in userdata:
+            self.twitterSchema.insert_user(user['id'], user)
+            self.twitterSchema.insert_following(user['id'], my_id)
+            self.makeInfluencerGraph(user['id'])
             time.sleep(5)
         return
 
     def makeInfluencerGraph(self, influencer_id):
         followers = self.twitterInput.getFollowers(influencer_id)
         count = 0
+        userdata = []
         for user in followers.items():
-            self.twitterSchema.insert_user(user._json['id'], user._json)
-            self.twitterSchema.insert_following(influencer_id, user._json['id'])
-            count+=1
+            userdata.append(user._json)
+            count += 1
             if count % 300 == 0:
                 time.sleep(900)
             print(user._json['id'], count)
+        for user in userdata:
+            self.twitterSchema.insert_user(user['id'], user)
+            self.twitterSchema.insert_following(influencer_id, user['id'])
+
         return
 
     def getInfluencersFeed(self):
