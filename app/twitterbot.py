@@ -11,38 +11,86 @@ class TwitterStatsFetcher:
     def __init__(self):
         auth = tweepy.OAuthHandler(settings.twitter_consumer_key, settings.twitter_consumer_secret)
         auth.set_access_token(settings.twitter_access_key, settings.twitter_access_secret)
-        self.twitter = tweepy.API(auth)
+        self.twitter = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True, compression=True)
         self.twitter_username = settings.twitter_account_name
 
     def getAccount(self, screen_name):
-        return self.twitter.get_user(screen_name=screen_name)
+        try:
+            result = self.twitter.get_user(screen_name=screen_name)
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return result
 
     def getSelf(self):
-        return self.twitter.me()
+        try:
+            result = self.twitter.me()
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return result
 
     def getFollowers(self, user_id):
-        return tweepy.Cursor(self.twitter.followers, id=user_id)
+        try:
+            result = tweepy.Cursor(self.twitter.followers, id=user_id)
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return result
+
+    def getFollowersPage(self, user_id, page):
+        try:
+            result = tweepy.Cursor(self.twitter.followers, id=user_id, count = 300).pages()
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return result
 
     def getInfluencers(self, user_id):
-        return tweepy.Cursor(self.twitter.friends, id=user_id)
+        try:
+            result = tweepy.Cursor(self.twitter.friends, id=user_id)
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return result
 
     def getFeed(self, user_id):
-        return tweepy.Cursor(self.twitter.user_timeline, id=user_id)
+        try:
+            result = tweepy.Cursor(self.twitter.user_timeline, id=user_id)
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return result
+
 
     def getHashtags(self, tweet):
-        return tweet.entities.get('hashtags')
+        try:
+            result = tweet.entities.get('hashtags')
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return result
 
     def follow(self, user):
-        return self.twitter.create_friendship(user)
+        try:
+            self.twitter.create_friendship(user)
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return
 
     def unfollow(self, user):
-        return self.twitter.destroy_friendship(user)
+        try:
+            self.twitter.destroy_friendship(user)
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return
 
     def like(self, tweet):
-        return self.twitter.create_favorite(tweet)
+        try:
+            self.twitter.create_favorite(tweet)
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return
 
     def retweet(self, tweet):
-        return self.twitter.retweet(tweet)
+        try:
+            self.twitter.retweet(tweet)
+        except tweepy.TweepError:
+            print("lib error: ", tweepy.TweepError)
+        return
 
 
 class TwitterNeo4jController:
@@ -130,10 +178,11 @@ class TwitterNeo4jController:
         return
 
     def get_users_followers(self, user_id):
-        influencers = self.graph.data(
+        followers = self.graph.data(
             "MATCH (followers)-[:follows]->(user) WHERE user.id = {param} RETURN followers.id",
             param=user_id)
-        return influencers
+        return followers
+
 
     def get_past_retweets(self):
         retweets = self.graph.data("MATCH (you)-[:retweets]->(tweets) RETURN tweets.id")
@@ -164,39 +213,46 @@ class TwitterBotController:
         my_id = self.me.id
         self.twitterSchema.insert_user(my_id, props)
         userdata = []
-        count = 0
-        #my_followers = self.twitterInput.getFollowers(my_id)
-        #for user in my_followers.items():
-        #    self.twitterSchema.insert_user(user._json['id'], user._json)
-        #    self.twitterSchema.insert_following(my_id, user._json['id'])
+        #count = 0
+        my_followers = self.twitterInput.getFollowers(my_id)
+        for user in my_followers.items():
+            self.twitterSchema.insert_user(user._json['id'], user._json)
+            self.twitterSchema.insert_following(my_id, user._json['id'])
         #    time.sleep(5)
         my_influencers = self.twitterInput.getInfluencers(my_id)
         for user in my_influencers.items():
             userdata.append(user._json)
-            print(user._json['id'], count)
-            count+=1
-            if count%250==0:
-                time.sleep(900)
+            #print(user._json['id'], count)
+            #count+=1
+            #if count%250==0:
+            #    time.sleep(900)
         for user in userdata:
             self.twitterSchema.insert_user(user['id'], user)
             self.twitterSchema.insert_following(user['id'], my_id)
             self.makeInfluencerGraph(user['id'])
-            time.sleep(5)
+            #time.sleep(5)
         return
 
     def makeInfluencerGraph(self, influencer_id):
         followers = self.twitterInput.getFollowers(influencer_id)
-        count = 0
+        #count = 0
         userdata = []
         for user in followers.items():
             userdata.append(user._json)
-            count += 1
-            if count % 300 == 0:
-                time.sleep(900)
-            print(user._json['id'], count)
+            #count += 1
+            #if count % 300 == 0:
+                #time.sleep(900)
+            #print(user._json['id'], count)
         for user in userdata:
             self.twitterSchema.insert_user(user['id'], user)
             self.twitterSchema.insert_following(influencer_id, user['id'])
+        return
+
+    def getPotentialFollowers(self):
+        followers = self.twitterSchema.get_influncers()
+        for id in followers:
+            print(id)
+            print(self.twitterSchema.get_users_followers(id))
 
         return
 
@@ -271,7 +327,8 @@ class TwitterBotController:
 
 testee = TwitterBotController()
 
-#testee.retweetOfTheShift()
+testee.getPotentialFollowers()
+testee.retweetOfTheShift()
 #testee.makeInfluencerGraph('Stoop_OW')
 #testee.unfollowNonfollowers()
 testee.makeMyGraph()
