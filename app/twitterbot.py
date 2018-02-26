@@ -15,6 +15,7 @@ class TwitterStatsFetcher:
         self.twitter_username = settings.twitter_account_name
 
     def getAccount(self, screen_name):
+        result = "error"
         try:
             result = self.twitter.get_user(screen_name=screen_name)
         except tweepy.TweepError:
@@ -22,6 +23,7 @@ class TwitterStatsFetcher:
         return result
 
     def getSelf(self):
+        result = "error"
         try:
             result = self.twitter.me()
         except tweepy.TweepError:
@@ -29,6 +31,7 @@ class TwitterStatsFetcher:
         return result
 
     def getFollowers(self, user_id):
+        result = "error"
         try:
             result = tweepy.Cursor(self.twitter.followers, id=user_id)
         except tweepy.TweepError:
@@ -36,6 +39,7 @@ class TwitterStatsFetcher:
         return result
 
     def getFollowersPage(self, user_id, page):
+        result = "error"
         try:
             result = tweepy.Cursor(self.twitter.followers, id=user_id, count = 300).pages()
         except tweepy.TweepError:
@@ -43,6 +47,7 @@ class TwitterStatsFetcher:
         return result
 
     def getInfluencers(self, user_id):
+        result = "error"
         try:
             result = tweepy.Cursor(self.twitter.friends, id=user_id)
         except tweepy.TweepError:
@@ -50,14 +55,15 @@ class TwitterStatsFetcher:
         return result
 
     def getFeed(self, user_id):
+        result = "error"
         try:
             result = tweepy.Cursor(self.twitter.user_timeline, id=user_id)
         except tweepy.TweepError:
             print("lib error: ", tweepy.TweepError)
         return result
 
-
     def getHashtags(self, tweet):
+        result = "error"
         try:
             result = tweet.entities.get('hashtags')
         except tweepy.TweepError:
@@ -277,6 +283,7 @@ class TwitterBotController:
         data = self.twitterSchema.get_influncers()
         cosine = 0
         retweets = []
+        tweet_id = 0
         for re in self.twitterSchema.get_past_retweets():
             retweets.append(re['tweets.id'])
         #print(retweets)
@@ -290,8 +297,9 @@ class TwitterBotController:
                 if cosine < np.mean(score) and status._json['id'] not in retweets:
                     cosine = np.mean(score)
                     tweet_id = status._json['id']
-        self.twitterSchema.insert_retweet(tweet_id, self.me.id)
-        self.twitterInput.retweet(tweet_id)
+        if tweet_id!=0:
+            self.twitterSchema.insert_retweet(tweet_id, self.me.id)
+            self.twitterInput.retweet(tweet_id)
         return
 
     def likeNewComers(self):
