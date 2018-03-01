@@ -219,63 +219,60 @@ class TwitterBotController:
         my_id = self.me.id
         self.twitterSchema.insert_user(my_id, props)
         userdata = []
-        #count = 0
-        my_followers = self.twitterInput.getFollowers(my_id)
-        for user in my_followers.items():
-            self.twitterSchema.insert_user(user._json['id'], user._json)
-            self.twitterSchema.insert_following(my_id, user._json['id'])
+        count = 0
+        #my_followers = self.twitterInput.getFollowers(my_id)
+        #for user in my_followers.items():
+            #self.twitterSchema.insert_user(user._json['id'], user._json)
+            #self.twitterSchema.insert_following(my_id, user._json['id'])
         #    time.sleep(5)
         my_influencers = self.twitterInput.getInfluencers(my_id)
         for user in my_influencers.items():
             userdata.append(user._json)
-            #print(user._json['id'], count)
+            print(user._json['id'], count)
             #count+=1
             #if count%250==0:
             #    time.sleep(900)
         for user in userdata:
             self.twitterSchema.insert_user(user['id'], user)
             self.twitterSchema.insert_following(user['id'], my_id)
-            self.makeInfluencerGraph(user['id'])
+            try:
+                self.makeInfluencerGraph(user['id'])
+            except tweepy.TweepError as e:
+                if 'Failed to send request:' in e.reason:
+                    print("Time out error caught.")
+                    time.sleep(180)
+            continue
             #time.sleep(5)
         return
 
-    def makeInfluencerGraph(self, influencer_id):
+    def makeInfluencerGraph(self, influencer_id, maxl = 1000):
         followers = self.twitterInput.getFollowers(influencer_id)
-        #count = 0
+        count = 0
         userdata = []
         for user in followers.items():
-            userdata.append(user._json)
-            #count += 1
+            count += 1
             #if count % 300 == 0:
                 #time.sleep(900)
-            #print(user._json['id'], count)
-        for user in userdata:
-            self.twitterSchema.insert_user(user['id'], user)
-            self.twitterSchema.insert_following(influencer_id, user['id'])
-        return
+            print(user._json['id'], count, influencer_id)
+            self.twitterSchema.insert_user(user._json['id'], user._json)
+            self.twitterSchema.insert_following(influencer_id, user._json['id'])
+            if count == maxl:
+                return
 
     def getPotentialFollowers(self):
         followers = self.twitterSchema.get_influncers()
         for id in followers:
             print(id)
             print(self.twitterSchema.get_users_followers(id))
-
         return
 
     def getInfluencersFeed(self):
-        counter = 1
         for inf in self.inflgamers:
-            #print(inf)
             user = self.twitterInput.getAccount(inf)
             tweet_feed = self.twitterInput.getFeed(user._json['id'])
             for status in tweet_feed.items(25):
                 text = status._json['text']
                 self.corpus.append(text)
-            if counter == 27:
-                time.sleep(900)
-                counter = 1
-            else:
-                counter+=1
         return
 
     def retweetOfTheShift(self):
@@ -335,8 +332,8 @@ class TwitterBotController:
 
 testee = TwitterBotController()
 
-testee.getPotentialFollowers()
-testee.retweetOfTheShift()
+#testee.getPotentialFollowers()
+#testee.retweetOfTheShift()
 #testee.makeInfluencerGraph('Stoop_OW')
 #testee.unfollowNonfollowers()
-testee.makeMyGraph()
+#testee.makeMyGraph()
