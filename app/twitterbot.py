@@ -3,6 +3,7 @@ import settings
 import time
 import playstvapi.metrics as metrics
 import numpy as np
+import pandas as pd
 from py2neo import Graph, Node, Relationship, authenticate
 #from py2neo import neo4j
 
@@ -189,6 +190,11 @@ class TwitterNeo4jController:
             param=user_id)
         return followers
 
+    def get_followers_numbers(self):
+        followers_numbers = self.graph.data(
+            "MATCH (followers)-[f:follows]->(user) RETURN count(f), followers.id"
+        )
+        return followers_numbers
 
     def get_past_retweets(self):
         retweets = self.graph.data("MATCH (you)-[:retweets]->(tweets) RETURN tweets.id")
@@ -264,6 +270,7 @@ class TwitterBotController:
         for id in followers:
             print(id)
             print(self.twitterSchema.get_users_followers(id))
+
         return
 
     def getInfluencersFeed(self):
@@ -275,10 +282,22 @@ class TwitterBotController:
                 self.corpus.append(text)
         return
 
+    def followInfluencersFollower(self):
+        data = pd.DataFrame(self.twitterSchema.get_followers_numbers())
+        to_follow = data[data['count(f)']>np.average(data['count(f)'])]['followers.id']
+        to_follow = to_follow[to_follow != self.me.id]
+        for uid in to_follow:
+            self.twitterInput.follow(uid)
+            self.twitterSchema.insert_following(uid, self.me.id)
+            print("followed user", uid)
+            time.sleep(96 + np.random.randint(4, 17))
+        return
+
     def retweetOfTheShift(self):
         self.getInfluencersFeed()
         data = self.twitterSchema.get_influncers()
         cosine = 0
+        retweets = []
         retweets = []
         tweet_id = 0
         for re in self.twitterSchema.get_past_retweets():
@@ -322,16 +341,9 @@ class TwitterBotController:
                 self.twitterInput.unfollow(target.id)
         return
 
-    def retweetGamerHashtags(self):
-        return
-
-    def getHashtagSpace(self):
-        return
-
-
-
 testee = TwitterBotController()
 
+testee.followInfluencersFollower()
 #testee.getPotentialFollowers()
 #testee.retweetOfTheShift()
 #testee.makeInfluencerGraph('Stoop_OW')
