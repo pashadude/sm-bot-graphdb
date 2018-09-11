@@ -1,7 +1,7 @@
 import tweepy
 import settings
-import time
 import playstvapi.metrics as metrics
+import time
 import numpy as np
 import pandas as pd
 from py2neo import Graph, Node, Relationship, authenticate
@@ -221,6 +221,7 @@ class TwitterBotController:
 
 
     def makeMyGraph(self):
+        #print(self.me)
         props = self.me._json
         my_id = self.me.id
         self.twitterSchema.insert_user(my_id, props)
@@ -235,9 +236,10 @@ class TwitterBotController:
         for user in my_influencers.items():
             userdata.append(user._json)
             print(user._json['id'], count)
-            #count+=1
+            count+=1
             #if count%250==0:
             #    time.sleep(900)
+            count = 0
         for user in userdata:
             self.twitterSchema.insert_user(user['id'], user)
             self.twitterSchema.insert_following(user['id'], my_id)
@@ -290,14 +292,37 @@ class TwitterBotController:
             self.twitterInput.follow(uid)
             self.twitterSchema.insert_following(uid, self.me.id)
             print("followed user", uid)
-            time.sleep(96 + np.random.randint(4, 17))
+            time.sleep(26 + np.random.randint(4, 17))
+        return
+
+    def followPlayersFollowers(self):
+        influencers = self.twitterSchema.get_influncers()
+        infs = []
+        plrs = []
+        for k in influencers:
+            infs.append(k['influencers.id'])
+        for inf in self.inflgamers:
+            user = self.twitterInput.getAccount(inf)
+            uid = user._json['id']
+            if not (uid in infs):
+                print(uid)
+                self.makeInfluencerGraph(uid, 3000)
+            plrs.append(uid)
+        data = pd.DataFrame(self.twitterSchema.get_followers_numbers())
+        plrs = pd.DataFrame(plrs, columns=['followers.id'])
+        to_follow = pd.merge(data, plrs, how="inner", on=['followers.id'])
+        print(to_follow)
+        for uid in to_follow:
+            self.twitterInput.follow(uid)
+            self.twitterSchema.insert_following(uid, self.me.id)
+            print("followed user", uid)
+            time.sleep(26 + np.random.randint(4, 17))
         return
 
     def retweetOfTheShift(self):
         self.getInfluencersFeed()
         data = self.twitterSchema.get_influncers()
         cosine = 0
-        retweets = []
         retweets = []
         tweet_id = 0
         for re in self.twitterSchema.get_past_retweets():
@@ -318,19 +343,17 @@ class TwitterBotController:
             self.twitterInput.retweet(tweet_id)
         return
 
-    def likeNewComers(self):
-        return
-
     def unfollowNonfollowers(self):
         followers = []
         influencers = []
-        follower_threshold = 1000
         my_id = self.me.id
         my_influencers = self.twitterInput.getInfluencers(my_id)
+        #print(my_influencers.items())
         for user in my_influencers.items():
             time.sleep(5)
-            if int(user._json['followers_count']) < 1000:
+            if int(user._json['followers_count']) < 10000:
                 influencers.append(user._json['screen_name'])
+        #print(influencers)
         my_followers = self.twitterInput.getFollowers(my_id)
         for user in my_followers.items():
             followers.append(user._json['screen_name'])
@@ -342,10 +365,11 @@ class TwitterBotController:
         return
 
 testee = TwitterBotController()
-
-testee.followInfluencersFollower()
+testee.followPlayersFollowers()
+#testee.retweetOfTheShift()
+#testee.followInfluencersFollower()
 #testee.getPotentialFollowers()
 #testee.retweetOfTheShift()
 #testee.makeInfluencerGraph('Stoop_OW')
 #testee.unfollowNonfollowers()
-#testee.makeMyGraph()
+#testee.makeInfluencerGraph(11928542, 3000)

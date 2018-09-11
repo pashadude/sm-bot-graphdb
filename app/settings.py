@@ -20,7 +20,6 @@ twitter_consumer_secret = "dNoS2k8pWrB74x7HJzEU9plSfj7FgfUtZGRbUyoKF9pyCB9uy5"
 twitter_access_key = "509969813-p00p4cVEOXX1mMXFMh3DqYN5Lsjpp8apoEHAe0dk"
 twitter_access_secret = "DEVwEgH4of4DgRsHDVPdV9mDN0a5RKKFYSknLr4OknUPM"
 twitter_account_name = "ProveYourSkillz"
-twitter_account_gamers = ["MinidukeLoL", "Falco_lol", "RafaL0L", "Th3AntonioGG", "Minitroupax", "werlyb_", "PePiiNeRO", "ElOjoNinja", "MoryoLoL",
-                          "TojoR18", "Lgend1", "peLukAAT1", "F7Sammy", "FlexZCoD", "MethodZSicK", "AlexAlguacil8", "aer0z", "Torpee", "lowelcs"]
+twitter_account_gamers = ["LopeGP7", "Santos17_YT", "Sallanman_cat", "Minegirlgames", "LauraLegaz97", "xNaet", "tecno_adicta", "sansilu"]
 ReplyLen = 5
 
